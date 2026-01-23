@@ -226,5 +226,6 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         </motion.div>
       ))}
     </motion.div>
-  )
+  </motion.div>
+)
 }
