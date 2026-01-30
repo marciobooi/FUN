@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { fuelFamilies } from '../data/siecCodes'
-import { fetchEnergyData, fetchPopulationData, fetchGDPData } from '../services/eurostat'
+import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixDataForCodes } from '../services/eurostat'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
@@ -256,6 +256,10 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
     'E7000': 'electricity',
     'W6100_6220': 'waste',
     'H8000': 'heat',
+    // Peat
+    'P1000': 'peat',
+    'P1100': 'peat',
+    'P1200': 'peatProducts',
     // Detailed solid fossil fuels
     'C0100': 'hardCoal',
     'C0110': 'anthracite',
@@ -282,9 +286,29 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
     'O4671XR5220B': 'diesel',
     'O4680': 'fuelOil',
     'RA100': 'hydro',
+    'RA200': 'geothermal',
     'RA300': 'wind',
     'RA400': 'solar',
+    'RA410': 'solarThermal',
+    'RA420': 'solarPhotovoltaic',
+    'RA500': 'tideWaveOcean',
+    'RA600': 'ambientHeat',
     'R5000': 'biofuels',
+    'R5100': 'solidBiofuels',
+    'R5110-5150_W6000RI': 'primarySolidBiofuels',
+    'R5160': 'charcoal',
+    'R5200': 'liquidBiofuels',
+    'R5210': 'biogasoline',
+    'R5210P': 'pureBiogasoline',
+    'R5210B': 'blendedBiogasoline',
+    'R5220': 'biodiesels',
+    'R5220P': 'pureBiodiesels',
+    'R5220B': 'blendedBiodiesels',
+    'R5230': 'bioJetKerosene',
+    'R5230P': 'pureBioJetKerosene',
+    'R5230B': 'blendedBioJetKerosene',
+    'R5290': 'otherLiquidBiofuels',
+    'R5300': 'biogases',
     'W6100': 'industrialWaste',
     'W6210': 'renewableMunicipalWaste',
     'W6220': 'nonRenewableMunicipalWaste'
@@ -410,8 +434,20 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
     // Collect all leaf nodes (detailed fuel types) from the family hierarchy
     const leafNodes = collectLeafNodes(family);
     
+    // Filter out fuels that have no data for all selected countries
+    const filteredLeafNodes = leafNodes.filter(leaf => {
+      const fuelKey = fuelKeyMap[leaf.id];
+      if (!fuelKey) return false;
+      
+      // Check if at least one country has data for this fuel
+      return selectedCountries.some(countryCode => {
+        const data = familyFuelData[countryCode]?.[fuelKey];
+        return data !== null && data !== undefined && !isNaN(data) && data !== 0;
+      });
+    });
+    
     // Return ONLY fuel-specific categories when a family is selected
-    return leafNodes.map(leaf => ({
+    return filteredLeafNodes.map(leaf => ({
       id: leaf.id,
       label: leaf.name,
       icon: '🔥',

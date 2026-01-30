@@ -24,6 +24,11 @@ const FUEL_CODES = {
   'W6100_6220': 'waste',             // Waste
   'H8000': 'heat',                   // Heat
   
+  // Peat
+  'P1000': 'peat',
+  'P1100': 'peat',
+  'P1200': 'peatProducts',
+  
   // Key detailed fuels
   'C0100': 'hardCoal',
   'C0110': 'anthracite',
@@ -49,9 +54,29 @@ const FUEL_CODES = {
   'O4671XR5220B': 'diesel',
   'O4680': 'fuelOil',
   'RA100': 'hydro',
+  'RA200': 'geothermal',
   'RA300': 'wind',
   'RA400': 'solar',
+  'RA410': 'solarThermal',
+  'RA420': 'solarPhotovoltaic',
+  'RA500': 'tideWaveOcean',
+  'RA600': 'ambientHeat',
   'R5000': 'biofuels',
+  'R5100': 'solidBiofuels',
+  'R5110-5150_W6000RI': 'primarySolidBiofuels',
+  'R5160': 'charcoal',
+  'R5200': 'liquidBiofuels',
+  'R5210': 'biogasoline',
+  'R5210P': 'pureBiogasoline',
+  'R5210B': 'blendedBiogasoline',
+  'R5220': 'biodiesels',
+  'R5220P': 'pureBiodiesels',
+  'R5220B': 'blendedBiodiesels',
+  'R5230': 'bioJetKerosene',
+  'R5230P': 'pureBioJetKerosene',
+  'R5230B': 'blendedBioJetKerosene',
+  'R5290': 'otherLiquidBiofuels',
+  'R5300': 'biogases',
   'W6100': 'industrialWaste',
   'W6210': 'renewableMunicipalWaste',
   'W6220': 'nonRenewableMunicipalWaste'
@@ -164,16 +189,42 @@ export const fetchFuelMixDataForCodes = async (countries, year, siecCodes) => {
     params.append('format', 'JSON');
     countries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
-    params.append('nrg_bal', 'FC_E'); // Final consumption
-    // Add only the specific fuel codes
-    siecCodes.forEach(code => params.append('siec', code));
+    
+    // Use appropriate balance flows for different fuel types
+    let balanceFlow = 'FC_E'; // Default to final consumption
+    if (siecCodes.some(code => code.startsWith('P'))) {
+      balanceFlow = 'TO'; // Total available for peat
+    } else if (siecCodes.some(code => code.startsWith('N'))) {
+      balanceFlow = 'PPRD'; // Production for nuclear
+    } else if (siecCodes.some(code => code.startsWith('R') || code.startsWith('RA'))) {
+      balanceFlow = 'TO'; // Total available for renewables
+    }
+    
+    params.append('nrg_bal', balanceFlow);
+    
+    // Add ALL fuel codes to ensure the API returns data, then filter later
+    Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
     const response = await axios.get(BASE_URL, { params });
-    const result = transformFuelMixResponse(response.data, countries, 'FC_E', year);
-    console.log('Transformed fuel mix result for codes:', result);
+    console.log('Raw API response for fuel codes:', siecCodes, 'balance:', balanceFlow, response.data);
+    console.log('Available SIEC codes in response:', Object.values(response.data.dimension.siec.category.index));
+    const result = transformFuelMixResponse(response.data, countries, balanceFlow, year);
     
-    return result;
+    // Filter the result to only include requested fuel keys
+    const filteredResult = {};
+    countries.forEach(country => {
+      filteredResult[country] = {};
+      siecCodes.forEach(code => {
+        const fuelKey = FUEL_CODES[code];
+        if (fuelKey && result[country][fuelKey] !== undefined) {
+          filteredResult[country][fuelKey] = result[country][fuelKey];
+        }
+      });
+    });
+    
+    console.log('Filtered fuel mix result for codes:', siecCodes, filteredResult);
+    return filteredResult;
   } catch (error) {
     console.error('Fuel Mix API Error for codes:', error);
     return {};
