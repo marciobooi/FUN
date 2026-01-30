@@ -295,3 +295,88 @@ function createValueGetter(data) {
     return value[linearIndex] ?? null;
   };
 }
+
+/**
+ * Fetch population data from Eurostat demo_pjan dataset
+ */
+export const fetchPopulationData = async (countries, year) => {
+  if (!countries || countries.length === 0) return {};
+
+  try {
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach(c => params.append('geo', c));
+    params.append('time', year.toString());
+    params.append('unit', 'NR'); // Number (population)
+    params.append('age', 'TOTAL');
+    params.append('sex', 'T');
+
+    const response = await axios.get('https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan', { params });
+    return transformPopulationResponse(response.data, countries, year);
+  } catch (error) {
+    console.error('Population API Error:', error);
+    return {};
+  }
+};
+
+/**
+ * Fetch GDP data from Eurostat nama_10_gdp dataset
+ */
+export const fetchGDPData = async (countries, year) => {
+  if (!countries || countries.length === 0) return {};
+
+  try {
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach(c => params.append('geo', c));
+    params.append('time', year.toString());
+    params.append('unit', 'CLV10_MEUR'); // Chain linked volumes (2010), million euro
+    params.append('na_item', 'B1GQ'); // Gross domestic product at market prices
+
+    const response = await axios.get('https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp', { params });
+    return transformGDPResponse(response.data, countries, year);
+  } catch (error) {
+    console.error('GDP API Error:', error);
+    return {};
+  }
+};
+
+/**
+ * Transform population API response
+ */
+function transformPopulationResponse(data, countries, year) {
+  const result = {};
+  countries.forEach(c => { result[c] = 0; });
+
+  if (!data?.value || !data?.dimension) return result;
+  const getValue = createValueGetter(data);
+
+  countries.forEach(geo => {
+    const val = getValue({ freq: 'A', unit: 'NR', age: 'TOTAL', sex: 'T', geo, time: year.toString() });
+    if (val !== null && !isNaN(val)) {
+      result[geo] = val; // Population in thousands
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Transform GDP API response
+ */
+function transformGDPResponse(data, countries, year) {
+  const result = {};
+  countries.forEach(c => { result[c] = 0; });
+
+  if (!data?.value || !data?.dimension) return result;
+  const getValue = createValueGetter(data);
+
+  countries.forEach(geo => {
+    const val = getValue({ freq: 'A', unit: 'CLV10_MEUR', na_item: 'B1GQ', geo, time: year.toString() });
+    if (val !== null && !isNaN(val)) {
+      result[geo] = val; // GDP in million EUR (chain linked volumes, 2010 prices)
+    }
+  });
+
+  return result;
+}
