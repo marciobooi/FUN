@@ -12,15 +12,49 @@ const FLOW_MAPPING = {
   'GIC': 'grossInlandConsumption'
 };
 
-// Energy products (siec) for fuel mix
+// Energy products (siec) for fuel mix - expanded for detailed breakdown
 const FUEL_CODES = {
+  // Main aggregates - these should definitely work
   'C0000X0350-0370': 'solidFossil',  // Solid fossil fuels
   'O4000XBIO': 'oil',                // Oil and petroleum products
   'G3000': 'gas',                    // Natural gas
-  'N900H': 'nuclear',                // Nuclear heat
   'RA000': 'renewables',             // Renewables and biofuels
+  'N900H': 'nuclear',                // Nuclear heat
   'E7000': 'electricity',            // Electricity
-  'H8000': 'heat'                    // Heat
+  'W6100_6220': 'waste',             // Waste
+  'H8000': 'heat',                   // Heat
+  
+  // Key detailed fuels
+  'C0100': 'hardCoal',
+  'C0110': 'anthracite',
+  'C0121': 'cokingCoal',
+  'C0129': 'otherBituminousCoal',
+  'C0200': 'brownCoal',
+  'C0210': 'subBituminousCoal',
+  'C0220': 'lignite',
+  'C0300': 'derivedCoal',
+  'C0311': 'cokeOvenCoke',
+  'C0312': 'gasCoke',
+  'C0320': 'patentFuel',
+  'C0330': 'brownCoalBriquettes',
+  'C0340': 'coalTar',
+  'C0350-0370': 'manufacturedGases',
+  'C0350': 'cokeOvenGas',
+  'C0360': 'gasWorksGas',
+  'C0371': 'blastFurnaceGas',
+  'C0379': 'otherRecoveredGases',
+  'O4100_TOT': 'crudeOil',
+  'O4650': 'gasoline',
+  'O4660': 'kerosene',
+  'O4671XR5220B': 'diesel',
+  'O4680': 'fuelOil',
+  'RA100': 'hydro',
+  'RA300': 'wind',
+  'RA400': 'solar',
+  'R5000': 'biofuels',
+  'W6100': 'industrialWaste',
+  'W6210': 'renewableMunicipalWaste',
+  'W6220': 'nonRenewableMunicipalWaste'
 };
 
 // Sector consumption codes
@@ -107,11 +141,12 @@ export const fetchFuelMixData = async (countries, year) => {
     countries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     params.append('nrg_bal', 'TO'); // Total supply
+    // Add all fuel codes for detailed breakdown
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
     const response = await axios.get(BASE_URL, { params });
-    return transformFuelMixResponse(response.data, countries);
+    return transformFuelMixResponse(response.data, countries, 'TO', year);
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
     return {};
@@ -119,8 +154,31 @@ export const fetchFuelMixData = async (countries, year) => {
 };
 
 /**
- * Fetch sector consumption data
+ * Fetch fuel mix data for specific SIEC codes
  */
+export const fetchFuelMixDataForCodes = async (countries, year, siecCodes) => {
+  if (!countries || countries.length === 0 || !siecCodes || siecCodes.length === 0) return {};
+
+  try {
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach(c => params.append('geo', c));
+    params.append('time', year.toString());
+    params.append('nrg_bal', 'FC_E'); // Final consumption
+    // Add only the specific fuel codes
+    siecCodes.forEach(code => params.append('siec', code));
+    params.append('unit', 'KTOE');
+
+    const response = await axios.get(BASE_URL, { params });
+    const result = transformFuelMixResponse(response.data, countries, 'FC_E', year);
+    console.log('Transformed fuel mix result for codes:', result);
+    
+    return result;
+  } catch (error) {
+    console.error('Fuel Mix API Error for codes:', error);
+    return {};
+  }
+};
 export const fetchSectorData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
@@ -134,7 +192,7 @@ export const fetchSectorData = async (countries, year) => {
     params.append('unit', 'KTOE');
 
     const response = await axios.get(BASE_URL, { params });
-    return transformSectorResponse(response.data, countries);
+    return transformSectorResponse(response.data, countries, year);
   } catch (error) {
     console.error('Sector API Error:', error);
     return {};
@@ -155,26 +213,37 @@ function transformBasicResponse(data, countries, year) {
 
   countries.forEach(geo => {
     Object.entries(FLOW_MAPPING).forEach(([flowCode, appKey]) => {
-      const val = getValue({ nrg_bal: flowCode, geo, siec: 'TOTAL' });
-      if (val !== null) result[geo][appKey] = val;
+      const val = getValue({ freq: 'A', nrg_bal: flowCode, siec: 'TOTAL', unit: 'KTOE', geo, time: year.toString() });
+      if (val !== null && !isNaN(val)) {
+        result[geo][appKey] = val;
+        result[geo][`${appKey}Raw`] = val; // Store raw number
+      }
     });
 
     // Calculate dependence
     const imp = result[geo].imports || 0;
     const exp = result[geo].exports || 0;
     const avail = result[geo].available || 1;
-    result[geo].dependence = (((imp - exp) / avail) * 100).toFixed(1) + '%';
+    if (!isNaN(imp) && !isNaN(exp) && !isNaN(avail) && avail !== 0) {
+      result[geo].dependence = (((imp - exp) / avail) * 100).toFixed(1) + '%';
+    } else {
+      result[geo].dependence = '—';
+    }
     
     // Format for display
     ['production', 'imports', 'exports', 'consumption', 'available'].forEach(key => {
-      result[geo][key] = Math.round(result[geo][key]).toLocaleString();
+      if (result[geo][key] !== undefined && !isNaN(result[geo][key])) {
+        result[geo][key] = Math.round(result[geo][key]).toLocaleString();
+      } else {
+        result[geo][key] = '—';
+      }
     });
   });
 
   return result;
 }
 
-function transformFuelMixResponse(data, countries) {
+function transformFuelMixResponse(data, countries, nrgBal = 'FC_E', year) {
   const result = {};
   countries.forEach(c => { result[c] = {}; });
 
@@ -183,14 +252,14 @@ function transformFuelMixResponse(data, countries) {
 
   countries.forEach(geo => {
     Object.entries(FUEL_CODES).forEach(([code, name]) => {
-      const val = getValue({ nrg_bal: 'TO', geo, siec: code });
-      result[geo][name] = val !== null ? Math.round(val) : 0;
+      const val = getValue({ freq: 'A', nrg_bal: nrgBal, siec: code, unit: 'KTOE', geo, time: year });
+      result[geo][name] = (val !== null && !isNaN(val)) ? Math.round(val) : null;
     });
   });
   return result;
 }
 
-function transformSectorResponse(data, countries) {
+function transformSectorResponse(data, countries, year) {
   const result = {};
   countries.forEach(c => { result[c] = {}; });
 
@@ -199,7 +268,7 @@ function transformSectorResponse(data, countries) {
 
   countries.forEach(geo => {
     Object.entries(SECTOR_CODES).forEach(([code, name]) => {
-      const val = getValue({ nrg_bal: code, geo, siec: 'TOTAL' });
+      const val = getValue({ freq: 'A', nrg_bal: code, siec: 'TOTAL', unit: 'KTOE', geo, time: year });
       result[geo][name] = val !== null ? Math.round(val) : 0;
     });
   });

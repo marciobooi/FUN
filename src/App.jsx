@@ -132,6 +132,7 @@ function App() {
                       selectedCountries={selectedCountries}
                       selectedYear={selectedYear}
                       data={data}
+                      fuelMix={fuelMix}
                       isLoading={isLoading}
                     />
                 </div>
