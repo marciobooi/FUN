@@ -63,8 +63,17 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
                       ))}
                     </Pie>
                     <Tooltip 
-                      formatter={(value) => [value.toLocaleString() + ' KTOE', '']}
-                      contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                      formatter={(value, name, props) => [
+                        `${value.toLocaleString()} KTOE`,
+                        `${name} (${country})`
+                      ]}
+                      labelFormatter={() => ''}
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        border: 'none', 
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        fontSize: '14px'
+                      }}
                     />
                   </PieChart>
                 </ChartContainer>

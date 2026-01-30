@@ -8,6 +8,7 @@ import { EnergyComparisonChart } from './components/EnergyComparisonChart'
 import { FuelDecomposition } from './components/FuelDecomposition'
 import { FuelMixChart } from './components/FuelMixChart'
 import { SectorConsumptionChart } from './components/SectorConsumptionChart'
+import { fuelFamilies } from './data/siecCodes'
 import { StorytellerMode } from './components/StorytellerMode'
 import { ParallaxInfographics } from './components/ParallaxInfographics'
 import { useEurostatData } from './hooks/useEurostatData'
@@ -149,55 +150,83 @@ function App() {
                          // Calculate energy mix for selected countries
                          const calculateEnergyMix = () => {
                            if (!fuelMix || selectedCountries.length === 0) return null;
-                           
+
+                           // Mapping between fuel family IDs and data keys
+                           const fuelMapping = {
+                             'C0000X0350-0370': 'solidFossil',
+                             'P1000': 'peat',
+                             'S2000': 'oilShale',
+                             'G3000': 'gas',
+                             'O4000XBIO': 'oil',
+                             'RA000': 'renewables',
+                             'W6100_6220': 'waste',
+                             'N900H': 'nuclear',
+                             'E7000': 'electricity',
+                             'H8000': 'heat'
+                           };
+
                            if (selectedCountries.length === 1) {
                              // Single country - show direct data
                              const country = selectedCountries[0];
                              const data = fuelMix[country];
                              if (!data) return null;
-                             
-                             const total = (data.oil || 0) + (data.gas || 0) + (data.renewables || 0) + 
-                                         (data.solidFossil || 0) + (data.nuclear || 0);
+
+                             // Calculate total from all available fuel data
+                             const total = Object.values(data).reduce((sum, value) => sum + (value || 0), 0);
                              if (total === 0) return null;
-                             
-                             return {
-                               country,
-                               isAggregate: false,
-                               oil: ((data.oil || 0) / total * 100).toFixed(1),
-                               gas: ((data.gas || 0) / total * 100).toFixed(1),
-                               renewables: ((data.renewables || 0) / total * 100).toFixed(1),
-                               solidFossil: ((data.solidFossil || 0) / total * 100).toFixed(1),
-                               nuclear: ((data.nuclear || 0) / total * 100).toFixed(1)
-                             };
-                           } else {
-                             // Multiple countries - show aggregate
-                             const totals = { oil: 0, gas: 0, renewables: 0, solidFossil: 0, nuclear: 0 };
-                             let totalEnergy = 0;
-                             
-                             selectedCountries.forEach(country => {
-                               if (fuelMix[country]) {
-                                 totals.oil += fuelMix[country].oil || 0;
-                                 totals.gas += fuelMix[country].gas || 0;
-                                 totals.renewables += fuelMix[country].renewables || 0;
-                                 totals.solidFossil += fuelMix[country].solidFossil || 0;
-                                 totals.nuclear += fuelMix[country].nuclear || 0;
-                                 totalEnergy += (fuelMix[country].oil || 0) + (fuelMix[country].gas || 0) + 
-                                               (fuelMix[country].renewables || 0) + (fuelMix[country].solidFossil || 0) + 
-                                               (fuelMix[country].nuclear || 0);
+
+                             // Create energy mix for all fuel families
+                             const mix = { country, isAggregate: false };
+
+                             fuelFamilies.forEach(family => {
+                               const dataKey = fuelMapping[family.id];
+                               if (dataKey && data[dataKey] !== undefined) {
+                                 mix[family.id] = ((data[dataKey] || 0) / total * 100).toFixed(1);
                                }
                              });
-                             
+
+                             return mix;
+                           } else {
+                             // Multiple countries - show aggregate
+                             const totals = {};
+                             let totalEnergy = 0;
+
+                             // Initialize totals for all fuel families
+                             fuelFamilies.forEach(family => {
+                               totals[family.id] = 0;
+                             });
+
+                             selectedCountries.forEach(country => {
+                               if (fuelMix[country]) {
+                                 const countryData = fuelMix[country];
+
+                                 fuelFamilies.forEach(family => {
+                                   const dataKey = fuelMapping[family.id];
+                                   if (dataKey && countryData[dataKey] !== undefined) {
+                                     totals[family.id] += countryData[dataKey] || 0;
+                                   }
+                                 });
+
+                                 // Calculate total energy for this country
+                                 totalEnergy += Object.values(countryData).reduce((sum, value) => sum + (value || 0), 0);
+                               }
+                             });
+
                              if (totalEnergy === 0) return null;
-                             
-                             return {
+
+                             // Create aggregated energy mix
+                             const mix = {
                                isAggregate: true,
-                               countries: selectedCountries,
-                               oil: ((totals.oil / totalEnergy) * 100).toFixed(1),
-                               gas: ((totals.gas / totalEnergy) * 100).toFixed(1),
-                               renewables: ((totals.renewables / totalEnergy) * 100).toFixed(1),
-                               solidFossil: ((totals.solidFossil / totalEnergy) * 100).toFixed(1),
-                               nuclear: ((totals.nuclear / totalEnergy) * 100).toFixed(1)
+                               countries: selectedCountries
                              };
+
+                             fuelFamilies.forEach(family => {
+                               if (totals[family.id] > 0) {
+                                 mix[family.id] = ((totals[family.id] / totalEnergy) * 100).toFixed(1);
+                               }
+                             });
+
+                             return mix;
                            }
                          };
                          
@@ -212,32 +241,40 @@ function App() {
                                  : `Energy Mix - ${energyMix.country} (${selectedYear})`
                                }
                              </h4>
-                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
-                               <div className="bg-white/70 rounded-xl p-4 border border-white/50">
-                                 <div className="font-semibold text-orange-600">Petroleum</div>
-                                 <div className="text-2xl font-bold text-gray-800">{energyMix.oil}%</div>
-                               </div>
-                               <div className="bg-white/70 rounded-xl p-4 border border-white/50">
-                                 <div className="font-semibold text-blue-600">Natural Gas</div>
-                                 <div className="text-2xl font-bold text-gray-800">{energyMix.gas}%</div>
-                               </div>
-                               <div className="bg-white/70 rounded-xl p-4 border border-white/50">
-                                 <div className="font-semibold text-green-600">Renewables</div>
-                                 <div className="text-2xl font-bold text-gray-800">{energyMix.renewables}%</div>
-                               </div>
-                               <div className="bg-white/70 rounded-xl p-4 border border-white/50">
-                                 <div className="font-semibold text-gray-600">Solid Fuels</div>
-                                 <div className="text-2xl font-bold text-gray-800">{energyMix.solidFossil}%</div>
-                               </div>
-                               <div className="bg-white/70 rounded-xl p-4 border border-white/50">
-                                 <div className="font-semibold text-purple-600">Nuclear</div>
-                                 <div className="text-2xl font-bold text-gray-800">{energyMix.nuclear}%</div>
-                               </div>
+                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 text-sm">
+                               {fuelFamilies
+                                 .filter(family => energyMix[family.id] !== undefined && parseFloat(energyMix[family.id]) > 0)
+                                 .map(family => {
+                                   // Color mapping for different fuel types
+                                   const colorMap = {
+                                     'C0000X0350-0370': 'text-gray-600',
+                                     'P1000': 'text-amber-600',
+                                     'S2000': 'text-stone-600',
+                                     'G3000': 'text-amber-600',
+                                     'O4000XBIO': 'text-blue-600',
+                                     'RA000': 'text-green-600',
+                                     'W6100_6220': 'text-orange-600',
+                                     'N900H': 'text-purple-600',
+                                     'E7000': 'text-red-600',
+                                     'H8000': 'text-orange-500'
+                                   };
+
+                                   return (
+                                     <div key={family.id} className="bg-white/70 rounded-xl p-3 border border-white/50 hover:bg-white/90 transition-colors">
+                                       <div className={`font-semibold ${colorMap[family.id] || 'text-gray-600'} text-xs leading-tight`}>
+                                         {family.name}
+                                       </div>
+                                       <div className="text-xl font-bold text-gray-800 mt-1">
+                                         {energyMix[family.id]}%
+                                       </div>
+                                     </div>
+                                   );
+                                 })}
                              </div>
                              <p className="text-xs text-gray-600 mt-4 leading-relaxed">
-                               {energyMix.isAggregate 
-                                 ? `The energy mix shows the composition of primary energy sources (excluding electricity and heat) across the ${selectedCountries.length} selected countries combined. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
-                                 : `The energy mix shows the composition of primary energy sources (excluding electricity and heat) for ${energyMix.country}. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
+                               {energyMix.isAggregate
+                                 ? `The energy mix shows the comprehensive fuel composition across the ${selectedCountries.length} selected countries combined, including all energy sources from primary fuels to electricity and heat. The shares vary significantly between countries based on their energy policies and resources.`
+                                 : `The energy mix shows the comprehensive fuel composition for ${energyMix.country}, including all energy sources from primary fuels to electricity and heat. The shares vary significantly between countries based on their energy policies and resources.`
                                }
                              </p>
                            </div>
