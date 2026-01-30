@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react'
 import { fuelFamilies } from '../data/siecCodes'
-import { fetchFuelMixDataForCodes } from '../services/eurostat'
+import { fetchFuelMixDataForCodes, fetchEnergyData } from '../services/eurostat'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
   const [familyFuelData, setFamilyFuelData] = useState({})
   const [isLoadingFamilyData, setIsLoadingFamilyData] = useState(false)
+
+  // Energy Dependency Indicator data
+  const [dependencyData, setDependencyData] = useState({})
+  const [isLoadingDependency, setIsLoadingDependency] = useState(false)
 
   // Fetch fuel data for selected family
   useEffect(() => {
@@ -33,6 +38,51 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
 
     fetchFamilyFuelData()
   }, [selectedFamily, selectedCountries, selectedYear])
+
+  // Fetch historical energy dependency data
+  useEffect(() => {
+    const fetchDependencyData = async () => {
+      if (selectedCountries.length === 0) {
+        setDependencyData({})
+        return
+      }
+
+      setIsLoadingDependency(true)
+      try {
+        // Fetch data for last 5 years
+        const years = [2023, 2022, 2021, 2020, 2019]
+        const historicalData = {}
+
+        for (const year of years) {
+          const yearData = await fetchEnergyData(selectedCountries, year)
+          historicalData[year] = yearData
+        }
+
+        setDependencyData(historicalData)
+      } catch (error) {
+        console.error('Error fetching dependency data:', error)
+        setDependencyData({})
+      } finally {
+        setIsLoadingDependency(false)
+      }
+    }
+
+    fetchDependencyData()
+  }, [selectedCountries])
+
+  // Calculate energy dependency for a country and year
+  const calculateDependency = (countryData, countryCode) => {
+    if (!countryData || !countryData[countryCode]) return null
+    
+    const imports = countryData[countryCode]?.importsRaw || 0
+    const exports = countryData[countryCode]?.exportsRaw || 0
+    const consumption = countryData[countryCode]?.consumptionRaw || 0
+    
+    if (consumption === 0) return null
+    
+    const dependency = ((imports - exports) / consumption) * 100
+    return Math.round(dependency * 10) / 10 // Round to 1 decimal place
+  }
 
   // Mapping from siec codes to fuelMix keys
   const fuelKeyMap = {
@@ -340,6 +390,175 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
           </div>
         ))}
       </div>
+
+      {/* Energy Dependency Indicator Section */}
+      {selectedCountries.length > 0 && !selectedFamily && (
+        <div className="mt-8 space-y-6">
+          <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 bg-red-100 rounded-xl">
+                <span className="text-2xl">📊</span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Energy Dependency Indicator</h2>
+                <p className="text-gray-600">External energy reliance: (Imports - Exports) ÷ Gross Inland Consumption</p>
+              </div>
+            </div>
+
+            {/* Current Year KPI Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {selectedCountries.map(countryCode => {
+                const currentDependency = calculateDependency(data, countryCode)
+                return (
+                  <div key={countryCode} className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl p-6 border border-red-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center justify-center w-12 h-12 bg-white border-2 border-red-200 text-red-700 font-bold rounded-full text-lg shadow-sm">
+                          {countryCode}
+                        </span>
+                        <div>
+                          <h3 className="text-lg font-bold text-red-800">{countryCode}</h3>
+                          <p className="text-sm text-red-600">Energy Dependency</p>
+                        </div>
+                      </div>
+                      {isLoadingDependency && (
+                        <div className="w-6 h-6 border-2 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
+                      )}
+                    </div>
+
+                    <div className="text-center">
+                      <div className="text-4xl font-bold text-red-900 mb-2">
+                        {currentDependency !== null ? `${currentDependency}%` : '—'}
+                      </div>
+                      <div className="text-sm text-red-600">
+                        {currentDependency !== null 
+                          ? currentDependency > 50 
+                            ? 'High Dependency' 
+                            : currentDependency > 25 
+                              ? 'Moderate Dependency' 
+                              : 'Low Dependency'
+                          : 'No Data'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Time Series Chart */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Dependency Trend (2019-2023)</h3>
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={(() => {
+                    const years = [2019, 2020, 2021, 2022, 2023]
+                    return years.map(year => {
+                      const dataPoint = { year: year.toString() }
+                      selectedCountries.forEach(countryCode => {
+                        const dependency = calculateDependency(dependencyData[year], countryCode)
+                        dataPoint[countryCode] = dependency
+                      })
+                      return dataPoint
+                    })
+                  })()}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="year" 
+                      stroke="#6b7280"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="#6b7280"
+                      fontSize={12}
+                      label={{ value: 'Dependency (%)', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      formatter={(value, name) => [`${value}%`, name]}
+                    />
+                    {selectedCountries.map((countryCode, index) => (
+                      <Line
+                        key={countryCode}
+                        type="monotone"
+                        dataKey={countryCode}
+                        stroke={`hsl(${(index * 137) % 360}, 70%, 50%)`}
+                        strokeWidth={3}
+                        dot={{ fill: `hsl(${(index * 137) % 360}, 70%, 50%)`, strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: `hsl(${(index * 137) % 360}, 70%, 50%)`, strokeWidth: 2 }}
+                      />
+                    ))}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Country Comparison Chart */}
+            <div>
+              <h3 className="text-xl font-bold text-gray-800 mb-4">Country Comparison ({selectedYear})</h3>
+              <div className="bg-gray-50 rounded-2xl p-6">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={selectedCountries.map(countryCode => {
+                    const dependency = calculateDependency(data, countryCode)
+                    return {
+                      country: countryCode,
+                      dependency: dependency,
+                      fill: dependency > 50 ? '#ef4444' : dependency > 25 ? '#f97316' : '#22c55e'
+                    }
+                  })}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="country" 
+                      stroke="#6b7280"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="#6b7280"
+                      fontSize={12}
+                      label={{ value: 'Dependency (%)', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      formatter={(value) => [`${value}%`, 'Energy Dependency']}
+                    />
+                    <Bar dataKey="dependency" radius={[4, 4, 0, 0]}>
+                      {selectedCountries.map((countryCode, index) => {
+                        const dependency = calculateDependency(data, countryCode)
+                        return (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={dependency > 50 ? '#ef4444' : dependency > 25 ? '#f97316' : '#22c55e'} 
+                          />
+                        )
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Methodology Note */}
+            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <h4 className="font-semibold text-blue-800 mb-2">📋 Methodology</h4>
+              <p className="text-sm text-blue-700">
+                Energy dependency measures how reliant a country is on imported energy. 
+                Calculated as (Imports - Exports) ÷ Gross Inland Consumption × 100. 
+                Higher percentages indicate greater external energy dependence and potential vulnerability to supply disruptions.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
