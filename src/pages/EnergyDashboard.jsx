@@ -3,6 +3,9 @@ import { fuelFamilies } from '../data/siecCodes'
 import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixDataForCodes } from '../services/eurostat'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { EnergyMetricsOverview } from '../components/EnergyMetricsOverview'
+import { DashboardCharts } from '../components/DashboardCharts'
+import { FuelMixDecomposition } from '../components/FuelMixDecomposition'
+import { TrendAnalysis } from '../components/TrendAnalysis'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -508,6 +511,33 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         familyFuelData={familyFuelData}
         isLoadingFamilyData={isLoadingFamilyData}
       />
+
+      {/* Dashboard Charts Section */}
+      {selectedCountries.length > 0 && (
+        <DashboardCharts
+          fuelMix={fuelMix}
+          sectors={data}
+          selectedCountries={selectedCountries}
+        />
+      )}
+
+      {/* Fuel Mix Decomposition Section */}
+      {selectedCountries.length > 0 && (
+        <FuelMixDecomposition
+          fuelMix={fuelMix}
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+        />
+      )}
+
+      {/* Trend Analysis Section */}
+      {selectedCountries.length > 0 && (
+        <TrendAnalysis
+          countries={selectedCountries}
+          year={selectedYear}
+          data={data}
+        />
+      )}
 
       {/* Energy Dependency Indicator Section */}
       {selectedCountries.length > 0 && !selectedFamily && (
