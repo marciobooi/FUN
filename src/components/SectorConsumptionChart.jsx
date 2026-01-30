@@ -1,6 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 import { motion } from 'framer-motion'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from './ui/ChartContainer'
 
 const SECTOR_COLORS = {
   industry: '#3B82F6',    // Blue

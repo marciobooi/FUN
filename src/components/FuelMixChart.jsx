@@ -1,6 +1,6 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { motion } from 'framer-motion'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from './ui/ChartContainer'
 
 const FUEL_COLORS = {
   solidFossil: '#374151',  // Gray-700

@@ -1,5 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from './ui/ChartContainer'
 
 export function EnergyComparisonChart({ countries, year, data }) {
   if (countries.length === 0) return null

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, RadialBarChart, RadialBar } from 'recharts'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from '../components/ui/ChartContainer'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const FUEL_COLORS = {

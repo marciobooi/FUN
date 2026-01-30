@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from './ui/ChartContainer'
 import { fuelFamilies } from '../data/siecCodes'
 
 // Enhanced color mapping based on fuel families

@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, RadialBarChart, RadialBar } from 'recharts'
-import { ChartContainer } from './ChartContainer'
+import { ChartContainer } from '../components/ui/ChartContainer'
 
 const FUEL_COLORS = {
   solidFossil: '#374151',
