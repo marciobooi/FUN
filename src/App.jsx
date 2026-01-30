@@ -236,8 +236,8 @@ function App() {
                              </div>
                              <p className="text-xs text-gray-600 mt-4 leading-relaxed">
                                {energyMix.isAggregate 
-                                 ? `The energy mix shows the combined composition of available energy sources across ${selectedCountries.length} selected countries. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
-                                 : `The energy mix shows the composition of available energy sources for ${energyMix.country}. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
+                                 ? `The energy mix shows the composition of primary energy sources (excluding electricity and heat) across the ${selectedCountries.length} selected countries combined. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
+                                 : `The energy mix shows the composition of primary energy sources (excluding electricity and heat) for ${energyMix.country}. Petroleum products typically have the largest share, followed by natural gas and renewables. The shares vary significantly between countries based on their energy policies and resources.`
                                }
                              </p>
                            </div>
