@@ -31,17 +31,6 @@ function App() {
       <main className="pt-28 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
           
-          {/* Main Controls */}
-          <MainControls
-            selectedCountries={selectedCountries}
-            setSelectedCountries={setSelectedCountries}
-            availableCountries={availableCountries}
-            selectedYear={selectedYear}
-            setSelectedYear={setSelectedYear}
-            years={years}
-            isLoading={isLoading}
-          />
-
           <AnimatePresence mode="wait">
             {viewMode === 'dashboard' && (
               <motion.div
@@ -52,6 +41,16 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <div className="mb-12">
+                  {/* Main Controls - Only shown in dashboard */}
+                  <MainControls
+                    selectedCountries={selectedCountries}
+                    setSelectedCountries={setSelectedCountries}
+                    availableCountries={availableCountries}
+                    selectedYear={selectedYear}
+                    setSelectedYear={setSelectedYear}
+                    years={years}
+                    isLoading={isLoading}
+                  />
                    <EnergyDashboard
                       selectedCountries={selectedCountries}
                       selectedYear={selectedYear}

@@ -64,13 +64,6 @@ export function YearSelector({ availableYears, selectedYear, onYearChange, isLoa
         </AnimatePresence>
       </div>
 
-      {!isLoading && years.length > 0 && (
-         <div className="mt-2 flex justify-between text-xs text-gray-400 font-medium px-1">
-            <span>{Math.min(...years)}</span>
-            <div className="h-px bg-gray-200 flex-1 mx-2 self-center" />
-            <span>{Math.max(...years)}</span>
-         </div>
-      )}
     </div>
   )
 }
