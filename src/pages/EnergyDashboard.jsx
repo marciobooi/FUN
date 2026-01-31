@@ -3,6 +3,7 @@ import { fuelFamilies } from '../data/siecCodes'
 import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixDataForCodes } from '../services/eurostat'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { EnergyMetricsOverview } from '../components/EnergyMetricsOverview'
+import { DashboardHeader } from '../components/DashboardHeader'
 import { DashboardCharts } from '../components/DashboardCharts'
 import { FuelMixDecomposition } from '../components/FuelMixDecomposition'
 import { TrendAnalysis } from '../components/TrendAnalysis'
@@ -502,6 +503,12 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Header */}
+      <DashboardHeader
+        selectedCountries={selectedCountries}
+        selectedYear={selectedYear}
+      />
+
       {/* Energy Metrics Overview Section */}
       <EnergyMetricsOverview
         selectedCountries={selectedCountries}
