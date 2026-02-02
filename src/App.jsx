@@ -1,5 +1,5 @@
 import { useUrlPersistence } from './hooks/useUrlPersistence'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { Header } from './components/Header'
@@ -20,15 +20,32 @@ function App() {
   } = useUrlPersistence([], 2023)
   
   const [viewMode, setViewMode] = useState('dashboard') // 'dashboard', 'storyteller', 'infographics'
+  const [hideHeader, setHideHeader] = useState(false)
 
   const { data, fuelMix, sectors, years, availableCountries, isLoading } = useEurostatData(selectedCountries, selectedYear)
+
+  // Hide header when scrolling in infographics mode
+  useEffect(() => {
+    if (viewMode !== 'infographics') {
+      setHideHeader(false)
+      return
+    }
+
+    const handleScroll = () => {
+      // Hide header when scrolled past 80vh (hero section)
+      setHideHeader(window.scrollY > window.innerHeight * 0.8)
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [viewMode])
 
   const containerClass = viewMode === 'infographics' ? 'w-full' : 'max-w-7xl mx-auto'
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Header */}
-      <Header viewMode={viewMode} setViewMode={setViewMode} />
+      <Header viewMode={viewMode} setViewMode={setViewMode} hidden={hideHeader} />
 
       <main className="pt-28 pb-20">
         <div className={containerClass}>

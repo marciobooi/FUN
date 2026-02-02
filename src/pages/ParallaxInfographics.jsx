@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from 'framer-motion'
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChartContainer } from '../components/ui/ChartContainer'
 
@@ -133,7 +133,7 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
   })).filter(d => d.value > 0)
 
   return (
-    <div ref={containerRef} className="bg-[#ecf0f3] min-h-screen font-sans text-slate-800 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900">
+    <div ref={containerRef} className="bg-[#ecf0f3] min-h-screen font-sans text-slate-800 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900 scroll-smooth">
       
       {/* Abstract Energy Shapes Background */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
@@ -175,9 +175,10 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
         subtitle="PRODUCTION VS IMPORTS" 
         index="03" 
         color="orange"
+        centered={true}
         story="Energy sovereignty is a delicate balance. This metric reveals the tension between domestic resilience and global necessity, illustrating just how self-reliant—or interconnected—a nation truly stands."
       >
-        <ProductionContent data={countryData} total={totalProduction} totalImports={totalImports} />
+        <ProductionContent data={countryData} />
       </Section>
 
       <Section 
@@ -293,7 +294,7 @@ function HeroSection({ year }) {
   const scale = useTransform(scrollY, [0, 500], [1, 0.8])
 
   return (
-    <div className="relative h-screen flex items-center justify-center overflow-hidden">
+    <div className="relative h-screen flex items-center justify-center overflow-hidden" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
       
       <EnergyStructure3D />
 
@@ -364,8 +365,8 @@ function Section({ children, title, subtitle, index, align = 'left', color = 'bl
   }[color] || 'text-blue-500';
 
   return (
-    <div className="py-32 w-full relative">
-      <div className="w-full px-6 md:px-16 lg:px-24 mx-auto relative">
+    <div className="w-full relative min-h-screen flex items-center" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
+      <div className="w-full px-6 md:px-16 lg:px-24 mx-auto relative py-16">
         {/* Decorative Grid Lines */}
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
         
@@ -568,54 +569,214 @@ function RenewableContent({ share, total, renewables }) {
   )
 }
 
-function ProductionContent({ data, total, totalImports }) {
-  if (!data || data.length === 0) return null
+function ProductionSingleCard({ data }) {
+  // Format data for the specific country chart
+  // We need an array for BarChart, containing just this country's data
+  const chartData = [
+    {
+       name: 'Production',
+       value: data.production,
+       fill: '#fb923c' // Orange-400
+    },
+    {
+       name: 'Imports',
+       value: data.imports,
+       fill: '#3b82f6' // Blue-500
+    }
+  ];
 
   return (
-    <div className="relative group hover:scale-[1.01] transition-transform duration-500">
+    <div className="relative group w-full max-w-xl mx-auto">
       <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-8 rounded-3xl relative shadow-xl">
-        <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
-          <div className="flex gap-8">
-             <div>
-               <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Domestic Prod.</div>
-               <div className="text-2xl font-bold text-orange-500 font-mono">{total.toLocaleString()}</div>
-             </div>
-             <div>
-               <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Imports</div>
-               <div className="text-2xl font-bold text-blue-500 font-mono">{totalImports.toLocaleString()}</div>
+        <div className="flex justify-between items-center mb-6 border-b border-slate-200 pb-4">
+          <div>
+             <div className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-1">{data.country}</div>
+             <div className="flex gap-6 text-xs font-mono text-slate-500">
+                <div>
+                   <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Prod</span>
+                   <span className="font-bold text-orange-600">{data.production.toLocaleString()}</span>
+                </div>
+                <div>
+                   <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Imp</span>
+                   <span className="font-bold text-blue-600">{data.imports.toLocaleString()}</span>
+                </div>
              </div>
           </div>
           <div className="text-right hidden md:block">
-            <div className="flex items-center gap-2 text-xs text-slate-500 mb-1">
-              <div className="w-3 h-3 bg-orange-400 rounded-sm"></div> PRODUCTION
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <div className="w-3 h-3 bg-blue-400 rounded-sm"></div> IMPORTS
-            </div>
+             <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest">
+               <div className="w-2 h-2 rounded-full bg-orange-400" /> Production
+             </div>
+             <div className="flex items-center gap-2 text-[10px] text-slate-400 uppercase tracking-widest mt-1">
+               <div className="w-2 h-2 rounded-full bg-blue-500" /> Imports
+             </div>
           </div>
         </div>
 
-        <div className="h-[400px]">
+        <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} layout="vertical" barSize={20}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-              <XAxis type="number" stroke="#64748b" fontSize={10} tickFormatter={(val) => `${val/1000}k`} />
-              <YAxis dataKey="country" type="category" width={40} stroke="#334155" fontSize={11} fontWeight="bold" />
+            <BarChart data={chartData} barSize={60}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 'bold'}} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} tickFormatter={(val) => `${val/1000}k`} />
               <Tooltip 
                 cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                 contentStyle={{ 
                   backgroundColor: 'rgba(255,255,255,0.95)', 
                   borderColor: '#e2e8f0', 
                   color: '#1e293b', 
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' 
                 }}
               />
-              <Bar dataKey="production" fill="#fb923c" radius={[0, 4, 4, 0]} stackId="a" />
-              <Bar dataKey="imports" fill="#3b82f6" radius={[0, 4, 4, 0]} stackId="a" />
+              <Bar dataKey="value" radius={[8, 8, 4, 4]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ProductionContent({ data }) {
+  const containerRef = useRef(null)
+  const isMulti = data && data.length > 1
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isLocked, setIsLocked] = useState(false)
+  const scrollDeltaRef = useRef(0)
+
+  // Lock body scroll when in multi mode and section is active
+  useEffect(() => {
+    if (isLocked && isMulti) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.height = '100vh'
+      return () => {
+        document.body.style.overflow = ''
+        document.body.style.height = ''
+      }
+    }
+  }, [isLocked, isMulti])
+
+  // Handle wheel events to cycle through countries when locked
+  useEffect(() => {
+    if (!isMulti || !isLocked) return
+
+    const handleWheel = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      
+      scrollDeltaRef.current += e.deltaY
+      
+      // Threshold to trigger change
+      if (Math.abs(scrollDeltaRef.current) > 100) {
+        if (scrollDeltaRef.current > 0) {
+          // Scroll down - next country
+          if (activeIndex < data.length - 1) {
+            setActiveIndex(prev => prev + 1)
+            scrollDeltaRef.current = 0
+          } else {
+            // Unlock on last chart
+            setIsLocked(false)
+            scrollDeltaRef.current = 0
+          }
+        } else {
+          // Scroll up - previous country
+          if (activeIndex > 0) {
+            setActiveIndex(prev => prev - 1)
+            scrollDeltaRef.current = 0
+          } else {
+            // Unlock on first chart when scrolling up
+            setIsLocked(false)
+            scrollDeltaRef.current = 0
+          }
+        }
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => window.removeEventListener('wheel', handleWheel)
+  }, [isMulti, isLocked, activeIndex, data.length])
+
+  // Lock when section comes into view in multi mode
+  useEffect(() => {
+    if (!isMulti) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          setIsLocked(true)
+        } else if (!entry.isIntersecting) {
+          setIsLocked(false)
+        }
+      },
+      { threshold: [0.5] }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [isMulti])
+
+  if (!data || data.length === 0) return null
+
+  // If single, just render normally
+  if (!isMulti) {
+     return <ProductionSingleCard data={data[0]} />
+  }
+
+  return (
+    <div 
+      ref={containerRef} 
+      className="relative w-full min-h-screen flex items-center justify-center"
+    >
+      <div className="w-full">
+         <AnimatePresence mode="wait">
+            {data[activeIndex] && (
+                <motion.div
+                key={activeIndex}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: "circOut" }}
+                className="w-full"
+                >
+                <ProductionSingleCard data={data[activeIndex]} />
+                </motion.div>
+            )}
+         </AnimatePresence>
+
+         {/* Pagination Dots */}
+         <div className="absolute -right-4 md:-right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3">
+             {data.map((_, i) => (
+               <motion.div
+                 key={i}
+                 animate={{ 
+                   scale: i === activeIndex ? 1.5 : 1,
+                   backgroundColor: i === activeIndex ? '#f97316' : '#cbd5e1'
+                 }}
+                 className="w-2 h-2 rounded-full shadow-sm transition-colors duration-300 cursor-pointer"
+                 onClick={() => setActiveIndex(i)}
+               />
+             ))}
+           </div>
+
+         {/* Progress Indicator */}
+         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
+           <div className="text-xs font-mono text-slate-400 mb-2">
+             {activeIndex + 1} / {data.length}
+           </div>
+           <motion.div 
+             animate={{ opacity: 1 }}
+             className="text-xs text-slate-400 font-light"
+           >
+             {isLocked ? '🔒 Scroll to cycle' : 'Scroll to enter'}
+           </motion.div>
+         </div>
       </div>
     </div>
   )
@@ -766,10 +927,10 @@ function InsightsContent({ production, imports, renewableShare, countries }) {
 
 function FooterSection() {
   return (
-    <div className="py-24 border-t border-slate-200 bg-slate-50 text-center relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center border-t border-slate-200 bg-slate-50 text-center relative overflow-hidden" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-100/50 via-transparent to-transparent opacity-60" />
       
-      <div className="relative z-10">
+      <div className="relative z-10 py-12">
         <h2 className="text-4xl font-black mb-4 text-slate-800 uppercase tracking-tighter">Eurostat Data Source</h2>
         <div className="flex justify-center gap-4 mb-8 text-sm font-mono text-blue-500">
           <span>[ nrg_bal_c ]</span>

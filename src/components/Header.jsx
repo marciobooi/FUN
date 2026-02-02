@@ -1,6 +1,8 @@
-export function Header({ viewMode, setViewMode }) {
+export function Header({ viewMode, setViewMode, hidden = false }) {
   return (
-    <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <header className={`fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 transition-transform duration-300 ${
+      hidden ? '-translate-y-full' : 'translate-y-0'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 text-white p-2 rounded-xl">
