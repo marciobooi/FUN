@@ -167,13 +167,20 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
     ? ((firstCountryFuel.renewables / firstCountryFuel.totalFuel) * 100).toFixed(1) 
     : 0
 
-  // Sector data
-  const sectorData = sectors[selectedCountries[0]] || {}
-  const sectorChartData = Object.entries(sectorData).map(([key, value]) => ({
-    name: SECTOR_LABELS[key] || key,
-    value,
-    fill: SECTOR_COLORS[key] || '#666'
-  })).filter(d => d.value > 0)
+  // Sector data for all selected countries
+  const sectorChartData = selectedCountries.map(country => {
+    const sectorData = sectors[country] || {}
+    const chartData = Object.entries(sectorData).map(([key, value]) => ({
+      name: SECTOR_LABELS[key] || key,
+      value,
+      fill: SECTOR_COLORS[key] || '#666'
+    })).filter(d => d.value > 0)
+    
+    return {
+      country,
+      chartData
+    }
+  })
 
   return (
     <div ref={containerRef} className="bg-[#ecf0f3] min-h-screen font-sans text-slate-800 overflow-x-hidden selection:bg-blue-200 selection:text-blue-900 scroll-smooth">
@@ -242,7 +249,7 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
         color="indigo"
         story="Power is generated to be consumed. This breakdown exposes the economic heartbeat of the nation—where the gigawatts flow, from the furnaces of heavy industry to the warmth of family homes."
       >
-        <ConsumptionContent data={sectorChartData} country={selectedCountries[0]} />
+        <ConsumptionContent data={sectorChartData} />
       </Section>
 
       <Section 
@@ -519,14 +526,29 @@ function EnergyMixContent({ data }) {
   const [isInView, setIsInView] = useState(false)
   const scrollDeltaRef = useRef(0)
   const isProcessingRef = useRef(false)
+  const hasSnappedRef = useRef(false)
 
-  // Detect when section is in view
+  // Detect when section is in view and snap to center
   useEffect(() => {
     if (!isMulti || !containerRef.current) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.5)
+        const inView = entry.isIntersecting && entry.intersectionRatio > 0.5
+        setIsInView(inView)
+        
+        // Snap to center when entering view
+        if (inView && !hasSnappedRef.current && containerRef.current) {
+          hasSnappedRef.current = true
+          const rect = containerRef.current.getBoundingClientRect()
+          const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+          window.scrollTo({ top: targetY, behavior: 'smooth' })
+        }
+        
+        // Reset snap flag when leaving view
+        if (!entry.isIntersecting) {
+          hasSnappedRef.current = false
+        }
       },
       { threshold: [0.5] }
     )
@@ -534,6 +556,14 @@ function EnergyMixContent({ data }) {
     observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [isMulti])
+
+  // Helper to center section in viewport
+  const centerSection = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+    window.scrollTo({ top: targetY, behavior: 'smooth' })
+  }
 
   // Lock scroll and handle wheel when in multi-country mode and in view
   useEffect(() => {
@@ -561,6 +591,9 @@ function EnergyMixContent({ data }) {
           setActiveIndex(prev => prev - 1)
         }
         
+        // Re-center after changing card
+        setTimeout(centerSection, 50)
+        
         scrollDeltaRef.current = 0
         setTimeout(() => {
           isProcessingRef.current = false
@@ -578,7 +611,7 @@ function EnergyMixContent({ data }) {
   if (!isMulti) {
     const { country, chartData } = data[0]
     return (
-      <div className="min-h-[70vh] flex items-center justify-center">
+      <div className="h-screen flex items-center justify-center">
         <EnergyMixSingleCard country={country} chartData={chartData} />
       </div>
     )
@@ -588,7 +621,7 @@ function EnergyMixContent({ data }) {
   return (
     <div 
       ref={containerRef} 
-      className="min-h-[80vh] flex items-center justify-center relative"
+      className="h-screen flex items-center justify-center relative"
     >
       <div className="w-full relative">
         {/* Cards with animation */}
@@ -823,14 +856,29 @@ function ProductionContent({ data }) {
   const [isInView, setIsInView] = useState(false)
   const scrollDeltaRef = useRef(0)
   const isProcessingRef = useRef(false)
+  const hasSnappedRef = useRef(false)
 
-  // Detect when section is in view
+  // Detect when section is in view and snap to center
   useEffect(() => {
     if (!isMulti || !containerRef.current) return
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.5)
+        const inView = entry.isIntersecting && entry.intersectionRatio > 0.5
+        setIsInView(inView)
+        
+        // Snap to center when entering view
+        if (inView && !hasSnappedRef.current && containerRef.current) {
+          hasSnappedRef.current = true
+          const rect = containerRef.current.getBoundingClientRect()
+          const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+          window.scrollTo({ top: targetY, behavior: 'smooth' })
+        }
+        
+        // Reset snap flag when leaving view
+        if (!entry.isIntersecting) {
+          hasSnappedRef.current = false
+        }
       },
       { threshold: [0.5] }
     )
@@ -838,6 +886,14 @@ function ProductionContent({ data }) {
     observer.observe(containerRef.current)
     return () => observer.disconnect()
   }, [isMulti])
+
+  // Helper to center section in viewport
+  const centerSection = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+    window.scrollTo({ top: targetY, behavior: 'smooth' })
+  }
 
   // Lock scroll and handle wheel when in multi-country mode and in view
   useEffect(() => {
@@ -865,6 +921,9 @@ function ProductionContent({ data }) {
           setActiveIndex(prev => prev - 1)
         }
         
+        // Re-center after changing card
+        setTimeout(centerSection, 50)
+        
         scrollDeltaRef.current = 0
         setTimeout(() => {
           isProcessingRef.current = false
@@ -881,7 +940,7 @@ function ProductionContent({ data }) {
   // If single, just render normally
   if (!isMulti) {
      return (
-       <div className="min-h-[70vh] flex items-center justify-center">
+       <div className="h-screen flex items-center justify-center">
          <ProductionSingleCard data={data[0]} />
        </div>
      )
@@ -890,7 +949,7 @@ function ProductionContent({ data }) {
   return (
     <div 
       ref={containerRef} 
-      className="min-h-[80vh] flex items-center justify-center relative"
+      className="h-screen flex items-center justify-center relative"
     >
       <div className="w-full max-w-xl mx-auto relative">
         {/* Cards with animation */}
@@ -993,67 +1052,219 @@ function DependencyContent({ data }) {
   )
 }
 
-function ConsumptionContent({ data, country }) {
+function ConsumptionSingleCard({ country, chartData }) {
+  const countryName = COUNTRY_NAMES[country] || country
+  
+  return (
+    <div className="relative group hover:scale-[1.01] transition-transform duration-500 w-full">
+      <div className="bg-gradient-to-br from-white/90 via-white/40 to-indigo-50/50 border border-white/40 backdrop-blur-xl p-6 md:p-10 rounded-3xl relative overflow-hidden shadow-xl">
+        {/* Decorative Background Elements */}
+        <div className="absolute -right-20 -bottom-20 w-64 h-64 border border-indigo-200 rounded-full animate-[spin_10s_linear_infinite]" />
+        <div className="absolute -right-20 -bottom-20 w-48 h-48 border border-indigo-200 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
+                <Tooltip 
+                  cursor={{fill: 'rgba(0,0,0,0.05)'}}
+                  contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0', color: '#1e293b', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          <div>
+            <h3 className="text-3xl font-bold text-slate-800 mb-6 leading-tight">
+              Sectoral<br/> <span className="text-indigo-500">Analysis</span>
+            </h3>
+            <p className="text-slate-500 mb-8 font-light">
+              Breakdown of final energy consumption across key economic sectors in <span className="font-semibold text-indigo-600">{countryName}</span>.
+            </p>
+            
+            <div className="space-y-4">
+              {chartData.map((d, i) => (
+                <motion.div 
+                  key={d.name}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center gap-4 group"
+                >
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/60 group-hover:bg-white/80 transition-colors border border-white/40 shadow-sm">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-slate-700 uppercase tracking-wider">{d.name}</div>
+                    <div className="text-xs text-slate-400 font-mono">{d.value.toLocaleString()} KTOE</div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConsumptionContent({ data }) {
+  const containerRef = useRef(null)
+  const isMulti = data && data.length > 1
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isInView, setIsInView] = useState(false)
+  const scrollDeltaRef = useRef(0)
+  const isProcessingRef = useRef(false)
+  const hasSnappedRef = useRef(false)
+
+  // Detect when section is in view and snap to center
+  useEffect(() => {
+    if (!isMulti || !containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const inView = entry.isIntersecting && entry.intersectionRatio > 0.5
+        setIsInView(inView)
+        
+        // Snap to center when entering view
+        if (inView && !hasSnappedRef.current && containerRef.current) {
+          hasSnappedRef.current = true
+          const rect = containerRef.current.getBoundingClientRect()
+          const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+          window.scrollTo({ top: targetY, behavior: 'smooth' })
+        }
+        
+        // Reset snap flag when leaving view
+        if (!entry.isIntersecting) {
+          hasSnappedRef.current = false
+        }
+      },
+      { threshold: [0.5] }
+    )
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [isMulti])
+
+  // Helper to center section in viewport
+  const centerSection = () => {
+    if (!containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const targetY = window.scrollY + rect.top - (window.innerHeight - rect.height) / 2
+    window.scrollTo({ top: targetY, behavior: 'smooth' })
+  }
+
+  // Lock scroll and handle wheel when in multi-country mode and in view
+  useEffect(() => {
+    if (!isMulti || !isInView) return
+
+    const handleWheel = (e) => {
+      // Allow normal scroll if at boundaries
+      if ((activeIndex === 0 && e.deltaY < 0) || 
+          (activeIndex === data.length - 1 && e.deltaY > 0)) {
+        return // Let page scroll normally
+      }
+
+      e.preventDefault()
+      
+      if (isProcessingRef.current) return
+      
+      scrollDeltaRef.current += e.deltaY
+      
+      if (Math.abs(scrollDeltaRef.current) > 60) {
+        isProcessingRef.current = true
+        
+        if (scrollDeltaRef.current > 0 && activeIndex < data.length - 1) {
+          setActiveIndex(prev => prev + 1)
+        } else if (scrollDeltaRef.current < 0 && activeIndex > 0) {
+          setActiveIndex(prev => prev - 1)
+        }
+        
+        // Re-center after changing card
+        setTimeout(centerSection, 50)
+        
+        scrollDeltaRef.current = 0
+        setTimeout(() => {
+          isProcessingRef.current = false
+        }, 400)
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => window.removeEventListener('wheel', handleWheel)
+  }, [isMulti, isInView, activeIndex, data.length])
+
   if (!data || data.length === 0) return null
 
+  // If single country, render directly
+  if (!isMulti) {
+    const { country, chartData } = data[0]
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <ConsumptionSingleCard country={country} chartData={chartData} />
+      </div>
+    )
+  }
+
+  // Multi-country carousel
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="relative group hover:scale-[1.01] transition-transform duration-500 w-full">
-       <div className="bg-gradient-to-br from-white/90 via-white/40 to-indigo-50/50 border border-white/40 backdrop-blur-xl p-6 md:p-10 rounded-3xl relative overflow-hidden shadow-xl">
-         {/* Decorative Background Elements */}
-         <div className="absolute -right-20 -bottom-20 w-64 h-64 border border-indigo-200 rounded-full animate-[spin_10s_linear_infinite]" />
-         <div className="absolute -right-20 -bottom-20 w-48 h-48 border border-indigo-200 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-         
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center relative z-10">
-           <div className="h-[350px]">
-             <ResponsiveContainer width="100%" height="100%">
-               <BarChart data={data}>
-                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} dy={10} />
-                 <YAxis axisLine={false} tickLine={false} tick={{fill: '#64748b', fontSize: 10}} />
-                 <Tooltip 
-                   cursor={{fill: 'rgba(0,0,0,0.05)'}}
-                   contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: '1px solid #e2e8f0', color: '#1e293b', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                 />
-                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                   {data.map((entry, i) => (
-                     <Cell key={i} fill={entry.fill} />
-                   ))}
-                 </Bar>
-               </BarChart>
-             </ResponsiveContainer>
-           </div>
-           
-           <div>
-              <h3 className="text-3xl font-bold text-slate-800 mb-6 leading-tight">
-                Sectoral<br/> <span className="text-indigo-500">Analysis</span>
-              </h3>
-              <p className="text-slate-500 mb-8 font-light">
-                Breakdown of final energy consumption across key economic sectors in {country}.
-              </p>
-              
-              <div className="space-y-4">
-                {data.map((d, i) => (
-                  <motion.div 
-                    key={d.name}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="flex items-center gap-4 group"
-                  >
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white/60 group-hover:bg-white/80 transition-colors border border-white/40 shadow-sm">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: d.fill }} />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-slate-700 uppercase tracking-wider">{d.name}</div>
-                      <div className="text-xs text-slate-400 font-mono">{d.value.toLocaleString()} KTOE</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-           </div>
-         </div>
-       </div>
+    <div 
+      ref={containerRef} 
+      className="h-screen flex items-center justify-center relative"
+    >
+      <div className="w-full relative">
+        {/* Cards with animation */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeIndex}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="w-full"
+          >
+            <ConsumptionSingleCard 
+              country={data[activeIndex].country} 
+              chartData={data[activeIndex].chartData} 
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Pagination Dots */}
+        <div className="absolute -right-2 md:right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+          {data.map((d, i) => (
+            <motion.button
+              key={i}
+              animate={{ 
+                scale: i === activeIndex ? 1.5 : 1,
+                backgroundColor: i === activeIndex ? '#6366f1' : '#cbd5e1'
+              }}
+              transition={{ duration: 0.2 }}
+              className="w-2.5 h-2.5 rounded-full shadow-sm cursor-pointer border-0 p-0"
+              onClick={() => setActiveIndex(i)}
+            />
+          ))}
+        </div>
+
+        {/* Progress Indicator */}
+        <div className="text-center mt-8">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-white/40">
+            <span className="text-xs font-mono text-slate-500">
+              {activeIndex + 1} / {data.length}
+            </span>
+            <span className="text-xs text-slate-400">
+              ↕ Scroll to navigate
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )
