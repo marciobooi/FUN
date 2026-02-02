@@ -69,6 +69,37 @@ export function FuelMixChart({ data, selectedCountries }) {
           ]}
         />
       </ChartContainer>
+
+      {/* Methodology & Data Sources */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
+        <div className="space-y-2 text-xs text-gray-700">
+          <p>
+            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - GIC (Gross Inland Consumption)
+          </p>
+          <p>
+            <strong>Fuel Categories:</strong> 
+            <span className="block ml-2 mt-1">
+              • Solid Fossil Fuels (coal, lignite, peat) | 
+              • Oil & Petroleum (crude oil, petroleum products) | 
+              • Natural Gas | 
+              • Nuclear (primary energy equivalent) | 
+              • Renewables (hydro, wind, solar, biomass, geothermal) | 
+              • Electricity (from net imports) | 
+              • Heat (district heating)
+            </span>
+          </p>
+          <p>
+            <strong>Unit:</strong> KTOE (Kilotonnes of Oil Equivalent) - standard for energy balance accounting across all fuel types
+          </p>
+          <p>
+            <strong>Coverage:</strong> All countries in the dataset from 2005 to present (annual data)
+          </p>
+          <p>
+            <strong>Note:</strong> GIC includes all energy consumed domestically, including losses in transformation and distribution. See "Practical Field Mapping" guide for detailed definitions of energy balance items.
+          </p>
+        </div>
+      </div>
     </motion.div>
   )
 }

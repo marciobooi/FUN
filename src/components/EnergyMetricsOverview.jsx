@@ -253,6 +253,41 @@ export function EnergyMetricsOverview({
         data={data}
         isLoadingFamilyData={isLoadingFamilyData}
       />
+
+      {/* Methodology & Data Sources */}
+      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
+        <div className="space-y-2 text-xs text-gray-700">
+          <p>
+            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) and nrg_quant (Energy quantities)
+          </p>
+          <p>
+            <strong>Metrics Displayed:</strong> 
+            <span className="block ml-2 mt-1">
+              • Energy Production (PRD) - domestic generation of energy | 
+              • Energy Imports (IMP) - energy sources from abroad | 
+              • Energy Exports (EXP) - energy sold to other countries | 
+              • Final Consumption (FC) - energy used by end consumers | 
+              • Available Energy - production plus imports minus exports | 
+              • Energy Dependence = (IMP - EXP) / GAE × 100% | 
+              • Net Energy Trade = IMP - EXP | 
+              • Self-Sufficiency = PRD / GIC × 100%
+            </span>
+          </p>
+          <p>
+            <strong>Unit:</strong> KTOE (Kilotonnes of Oil Equivalent) - standardized measurement across all fuel types
+          </p>
+          <p>
+            <strong>Fuel Family Selector:</strong> Toggle between total energy or individual fuel groups (coal, oil, gas, nuclear, renewables, etc.) to analyze specific energy sources
+          </p>
+          <p>
+            <strong>Coverage:</strong> All countries in the dataset for the selected year
+          </p>
+          <p>
+            <strong>Note:</strong> Energy balance accounting: PRD + IMP - EXP = Available Energy (accounting for stock changes). Final consumption excludes transformation losses. See "Practical Field Mapping" guide for detailed metric definitions and SIEC code mappings.
+          </p>
+        </div>
+      </div>
     </>
   )
 }
