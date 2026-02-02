@@ -1,6 +1,7 @@
 import { useUrlPersistence } from './hooks/useUrlPersistence'
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Toaster } from 'react-hot-toast'
 import { Header } from './components/Header'
 import { MainControls } from './components/MainControls'
 import { Footer } from './components/Footer'
@@ -96,12 +97,14 @@ function App() {
               </motion.div>
             )}
           </AnimatePresence>
-
         </div>
       </main>
       
       {/* Footer */}
       <Footer viewMode={viewMode} />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   )
 }
