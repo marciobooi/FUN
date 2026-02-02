@@ -472,7 +472,7 @@ function EnergyMixContent({ data, country }) {
   return (
     <div className="w-full min-h-[500px] flex items-center justify-center">
        {/* Focused Chart Card */}
-       <TiltCard className="relative z-10">
+       <div className="relative z-10 transition-transform duration-500 hover:scale-105">
           <div className="bg-white/20 backdrop-blur-sm border border-white/50 p-8 rounded-[40px] shadow-2xl w-[350px] md:w-[450px]">
              <div className="flex justify-between items-center mb-6">
                 <div>
@@ -523,7 +523,7 @@ function EnergyMixContent({ data, country }) {
                </div>
              </div>
           </div>
-       </TiltCard>
+       </div>
     </div>
   )
 }
@@ -572,7 +572,7 @@ function ProductionContent({ data, total, totalImports }) {
   if (!data || data.length === 0) return null
 
   return (
-    <TiltCard>
+    <div className="relative group hover:scale-[1.01] transition-transform duration-500">
       <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-8 rounded-3xl relative shadow-xl">
         <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
           <div className="flex gap-8">
@@ -617,7 +617,7 @@ function ProductionContent({ data, total, totalImports }) {
           </ResponsiveContainer>
         </div>
       </div>
-    </TiltCard>
+    </div>
   )
 }
 
@@ -676,7 +676,7 @@ function ConsumptionContent({ data, country }) {
   if (!data || data.length === 0) return null
 
   return (
-    <TiltCard>
+    <div className="relative group hover:scale-[1.01] transition-transform duration-500">
        <div className="bg-gradient-to-br from-white/90 via-white/40 to-indigo-50/50 border border-white/40 backdrop-blur-xl p-6 md:p-10 rounded-3xl relative overflow-hidden shadow-xl">
          {/* Decorative Background Elements */}
          <div className="absolute -right-20 -bottom-20 w-64 h-64 border border-indigo-200 rounded-full animate-[spin_10s_linear_infinite]" />
@@ -732,7 +732,7 @@ function ConsumptionContent({ data, country }) {
            </div>
          </div>
        </div>
-    </TiltCard>
+    </div>
   )
 }
 
