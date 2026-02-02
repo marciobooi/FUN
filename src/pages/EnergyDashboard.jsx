@@ -11,6 +11,7 @@ import { TrendAnalysis } from '../components/TrendAnalysis'
 import { EnergyDependencyIndicator } from '../components/EnergyDependencyIndicator'
 import { CO2EmissionsLinkage } from '../components/CO2EmissionsLinkage'
 import { EnergyIntensityMetrics } from '../components/EnergyIntensityMetrics'
+import { TransformationEfficiency } from '../components/TransformationEfficiency'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -210,6 +211,15 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         intensityData={intensityData} 
         isLoadingIntensity={isLoadingIntensity}
       />
+
+      {/* Transformation & Conversion Efficiency Section */}
+      {selectedCountries.length > 0 && (
+        <TransformationEfficiency
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+          data={data}
+        />
+      )}
     </div>
   )
 }
