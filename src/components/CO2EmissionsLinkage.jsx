@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { ComposedChartComponent, ScatterChartComponent, BarChartComponent } from '../components/ui/charts'
+import { getCountryName } from '../data/countryNames'
 
 export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }) {
   const [emissionsData, setEmissionsData] = useState({})
@@ -116,7 +117,7 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
             return (
               <div key={countryCode} className="bg-gradient-to-br from-red-50 to-orange-50 p-4 rounded-xl border border-red-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-red-800">{countryCode}</h3>
+                  <h3 className="font-semibold text-red-800">{getCountryName(countryCode)}</h3>
                   <span className="text-2xl">🌡️</span>
                 </div>
                 <div className="space-y-1">

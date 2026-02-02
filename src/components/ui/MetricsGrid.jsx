@@ -1,4 +1,6 @@
 import React from 'react'
+import { motion } from 'framer-motion'
+import { getCountryName } from '../../data/countryNames'
 
 export function MetricsGrid({
   displayCategories,
@@ -43,7 +45,7 @@ export function MetricsGrid({
                       {countryCode}
                     </span>
                     <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                      {countryCode}
+                      {getCountryName(countryCode)}
                     </span>
                   </div>
 

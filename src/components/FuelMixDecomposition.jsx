@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fuelFamilies } from '../data/siecCodes'
+import { getCountryName } from '../data/countryNames'
 
 // Color mapping for fuel families
 const FAMILY_COLORS = {
@@ -189,7 +190,7 @@ export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear 
             <div key={country} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 overflow-hidden">
               {/* KPI Card - All Fuels */}
               <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                <h4 className="text-lg font-bold text-gray-800 mb-3">{country}</h4>
+                <h4 className="text-lg font-bold text-gray-800 mb-3">{getCountryName(country)}</h4>
                 <div className="grid grid-cols-2 gap-2">
                   {pieData.map(item => (
                     <div key={item.id} className="bg-white/70 rounded-lg p-2 border border-blue-100">

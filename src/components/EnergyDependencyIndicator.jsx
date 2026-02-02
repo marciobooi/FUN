@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { LineChartComponent } from '../components/ui/charts'
+import { getCountryName } from '../data/countryNames'
 
 export function EnergyDependencyIndicator({ selectedCountries, selectedYear, data }) {
   const [dependencyData, setDependencyData] = useState({})
@@ -85,7 +86,7 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
                       {countryCode}
                     </span>
                     <div>
-                      <h3 className="text-lg font-bold text-red-800">{countryCode}</h3>
+                      <h3 className="text-lg font-bold text-red-800">{getCountryName(countryCode)}</h3>
                       <p className="text-sm text-red-600">Energy Dependency</p>
                     </div>
                   </div>

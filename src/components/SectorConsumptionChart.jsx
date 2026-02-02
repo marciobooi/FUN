@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { ChartContainer } from './ui/ChartContainer'
 import { PieChartComponent } from '../components/ui/charts'
+import { getCountryName } from '../data/countryNames'
 
 const SECTOR_COLORS = {
   industry: '#3B82F6',    // Blue
@@ -50,7 +51,7 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
 
           return (
             <div key={country} className="text-center">
-              <h4 className="font-bold text-gray-700 mb-4">{country}</h4>
+              <h4 className="font-bold text-gray-700 mb-4">{getCountryName(country)}</h4>
               <ChartContainer style={{ height: '200px' }}>
                 <PieChartComponent
                   data={pieData}

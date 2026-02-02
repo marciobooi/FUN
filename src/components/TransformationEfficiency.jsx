@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import { fetchEnergyData, fetchFuelMixData } from '../services/eurostat'
+import { getCountryName } from '../data/countryNames'
 
 /**
  * Transformation & Conversion Efficiency Component
@@ -158,7 +159,7 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
             return (
               <div key={country} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-amber-800">{country}</h3>
+                  <h3 className="font-semibold text-amber-800">{getCountryName(country)}</h3>
                   <span className="text-2xl">⚡</span>
                 </div>
                 <div className="space-y-2">
@@ -227,7 +228,7 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
                 return (
                   <div key={country} className="bg-white p-4 rounded-lg border border-gray-200">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-gray-800">{country}</h4>
+                      <h4 className="font-semibold text-gray-800">{getCountryName(country)}</h4>
                       <span className="text-2xl">📊</span>
                     </div>
                     
@@ -294,7 +295,7 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
 
                   return (
                     <tr key={country} className="border-b border-gray-200 hover:bg-white transition-colors">
-                      <td className="py-2 px-3 font-medium text-gray-800">{country}</td>
+                        <td className="py-2 px-3 font-medium text-gray-800">{getCountryName(country)}</td>
                       <td className="py-2 px-3 text-right text-gray-700">{tData.transformationInput.toLocaleString()}</td>
                       <td className="py-2 px-3 text-right text-blue-600 font-semibold">{tData.electricityOutput.toLocaleString()}</td>
                       <td className="py-2 px-3 text-right text-orange-600 font-semibold">{tData.heatOutput.toLocaleString()}</td>
@@ -337,7 +338,7 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
 
                     return (
                       <tr key={country} className="border-b border-gray-200 hover:bg-white transition-colors">
-                        <td className="py-2 px-3 font-medium text-gray-800">{country}</td>
+                        <td className="py-2 px-3 font-medium text-gray-800">{getCountryName(country)}</td>
                         <td className="py-2 px-3 text-right text-gray-700 font-semibold">{tData.refineryInput.toLocaleString()}</td>
                         <td className="py-2 px-3 text-right text-gray-600">{tData.refinedProducts.gasoline.toLocaleString()}</td>
                         <td className="py-2 px-3 text-right text-gray-600">{tData.refinedProducts.diesel.toLocaleString()}</td>

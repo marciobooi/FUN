@@ -43,6 +43,8 @@ const CATEGORIES = [
   }
 ]
 
+import { getCountryName } from '../data/countryNames'
+
 export function ComparisonGrid({ selectedCountries, selectedYear, data, isLoading }) {
   if (selectedCountries.length === 0) {
     return (
@@ -75,7 +77,7 @@ export function ComparisonGrid({ selectedCountries, selectedYear, data, isLoadin
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {selectedCountries.map(countryCode => (
               <div key={countryCode} className="bg-gray-50 rounded p-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{countryCode}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">{getCountryName(countryCode)}</p>
                 <p className="text-2xl font-bold text-eurostat-darkBlue">
                   {data[countryCode]?.[category.id] || 'N/A'}
                 </p>

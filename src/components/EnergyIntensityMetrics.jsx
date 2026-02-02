@@ -1,5 +1,6 @@
 import React from 'react'
 import { LineChartComponent, ScatterChartComponent } from '../components/ui/charts'
+import { getCountryName } from '../data/countryNames'
 
 export function EnergyIntensityMetrics({ selectedCountries, selectedYear, intensityData, isLoadingIntensity }) {
   if (selectedCountries.length === 0) {
@@ -28,7 +29,7 @@ export function EnergyIntensityMetrics({ selectedCountries, selectedYear, intens
             return (
               <div key={countryCode} className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-green-800">{countryCode}</h3>
+                  <h3 className="font-semibold text-green-800">{getCountryName(countryCode)}</h3>
                   <span className="text-2xl">📊</span>
                 </div>
                 <div className="space-y-1">
