@@ -17,6 +17,7 @@ import { SelfSufficiencyRatio } from '../components/SelfSufficiencyRatio'
 import { ComparisonTools } from '../components/ComparisonTools'
 import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
 import { SecurityOfSupplyIndicators } from '../components/SecurityOfSupplyIndicators'
+import { PracticalFieldMapping } from '../components/PracticalFieldMapping'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -265,6 +266,9 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
           selectedYear={selectedYear}
         />
       )}
+
+      {/* Practical Field Mapping Reference */}
+      <PracticalFieldMapping />
     </div>
   )
 }
