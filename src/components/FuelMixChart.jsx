@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { ChartContainer } from './ui/ChartContainer'
 import { BarChartComponent } from '../components/ui/charts'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 const FUEL_COLORS = {
   solidFossil: '#374151',  // Gray-700
@@ -54,26 +55,9 @@ export function FuelMixChart({ data, selectedCountries }) {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 overflow-hidden"
     >
-      <h3 className="text-lg font-bold text-gray-900 mb-6">Energy Supply by Source (KTOE)</h3>
-      
-      <ChartContainer style={{ height: '400px' }}>
-        <BarChartComponent
-          data={chartData}
-          bars={barConfig}
-          xAxisKey="country"
-          layout="horizontal"
-          height={400}
-          customTooltip={(value, name) => [
-            `${value.toLocaleString()} KTOE`,
-            FUEL_LABELS[name] || name
-          ]}
-        />
-      </ChartContainer>
-
-      {/* Methodology & Data Sources */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
-        <div className="space-y-2 text-xs text-gray-700">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-gray-900">Energy Supply by Source (KTOE)</h3>
+        <MethodologyModal title="Energy Supply by Source - Methodology">
           <p>
             <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - GIC (Gross Inland Consumption)
           </p>
@@ -98,8 +82,22 @@ export function FuelMixChart({ data, selectedCountries }) {
           <p>
             <strong>Note:</strong> GIC includes all energy consumed domestically, including losses in transformation and distribution. See "Practical Field Mapping" guide for detailed definitions of energy balance items.
           </p>
-        </div>
+        </MethodologyModal>
       </div>
+      
+      <ChartContainer style={{ height: '400px' }}>
+        <BarChartComponent
+          data={chartData}
+          bars={barConfig}
+          xAxisKey="country"
+          layout="horizontal"
+          height={400}
+          customTooltip={(value, name) => [
+            `${value.toLocaleString()} KTOE`,
+            FUEL_LABELS[name] || name
+          ]}
+        />
+      </ChartContainer>
     </motion.div>
   )
 }

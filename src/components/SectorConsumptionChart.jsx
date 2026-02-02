@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { ChartContainer } from './ui/ChartContainer'
 import { PieChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 const SECTOR_COLORS = {
   industry: '#3B82F6',    // Blue
@@ -32,7 +33,32 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
     >
-      <h3 className="text-lg font-bold text-gray-900 mb-6">Consumption by Sector</h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-bold text-gray-900">Consumption by Sector</h3>
+        <MethodologyModal title="Consumption by Sector - Methodology">
+          <p>
+            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - AFC (Apparent Fuel Consumption) by sector
+          </p>
+          <p>
+            <strong>Sectors:</strong> 
+            <span className="block ml-2 mt-1">
+              • Industry (manufacturing, mining, construction) | 
+              • Transport (road, rail, aviation, maritime) | 
+              • Households (residential buildings) | 
+              • Commercial & Public (services, commercial, public administration)
+            </span>
+          </p>
+          <p>
+            <strong>Unit:</strong> KTOE (Kilotonnes of Oil Equivalent) - final energy consumption by end-use sector
+          </p>
+          <p>
+            <strong>Coverage:</strong> All countries in the dataset from 2005 to present (annual data)
+          </p>
+          <p>
+            <strong>Note:</strong> Final consumption excludes transformation losses and non-energy uses. See "Practical Field Mapping" guide for detailed definitions of AFC (Apparent Fuel Consumption) sector breakdowns.
+          </p>
+        </MethodologyModal>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">{selectedCountries.map(country => {
           const sectors = data[country] || {}
@@ -77,34 +103,6 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
             <span className="text-sm text-gray-600">{label}</span>
           </div>
         ))}
-      </div>
-
-      {/* Methodology & Data Sources */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
-        <div className="space-y-2 text-xs text-gray-700">
-          <p>
-            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - AFC (Apparent Fuel Consumption) by sector
-          </p>
-          <p>
-            <strong>Sectors:</strong> 
-            <span className="block ml-2 mt-1">
-              • Industry (manufacturing, mining, construction) | 
-              • Transport (road, rail, aviation, maritime) | 
-              • Households (residential buildings) | 
-              • Commercial & Public (services, commercial, public administration)
-            </span>
-          </p>
-          <p>
-            <strong>Unit:</strong> KTOE (Kilotonnes of Oil Equivalent) - final energy consumption by end-use sector
-          </p>
-          <p>
-            <strong>Coverage:</strong> All countries in the dataset from 2005 to present (annual data)
-          </p>
-          <p>
-            <strong>Note:</strong> Final consumption excludes transformation losses and non-energy uses. See "Practical Field Mapping" guide for detailed definitions of AFC (Apparent Fuel Consumption) sector breakdowns.
-          </p>
-        </div>
       </div>
     </motion.div>
   )

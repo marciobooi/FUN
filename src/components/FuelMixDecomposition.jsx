@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fuelFamilies } from '../data/siecCodes'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 // Color mapping for fuel families
 const FAMILY_COLORS = {
@@ -104,7 +105,41 @@ export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear 
 
   return energyMix ? (
     <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
-      <h3 className="text-xl font-bold text-gray-900 mb-8">Fuel Mix Decomposition</h3>
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="text-xl font-bold text-gray-900">Fuel Mix Decomposition</h3>
+        <MethodologyModal title="Fuel Mix Decomposition - Methodology">
+          <p>
+            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - GIC (Gross Inland Consumption) decomposed by fuel type
+          </p>
+          <p>
+            <strong>Fuel Families:</strong> 
+            <span className="block ml-2 mt-1">
+              • Coal & Solid Fuels (coal, lignite, coke) | 
+              • Peat | 
+              • Oil Shale | 
+              • Natural Gas | 
+              • Oil & Petroleum Products | 
+              • Renewables (hydro, wind, solar, biomass, geothermal) | 
+              • Waste (non-renewable waste) | 
+              • Nuclear | 
+              • Electricity (net imports) | 
+              • Heat (district heating)
+            </span>
+          </p>
+          <p>
+            <strong>Unit:</strong> Mtoe (Million tonnes of Oil Equivalent) - aggregation of primary and secondary fuel contributions to total GIC
+          </p>
+          <p>
+            <strong>Aggregation:</strong> Multi-country view shows combined GIC across selected countries; single-country view shows national fuel composition
+          </p>
+          <p>
+            <strong>Coverage:</strong> All countries in the dataset from 2005 to present (annual data)
+          </p>
+          <p>
+            <strong>Note:</strong> Fuel mix decomposition includes all energy types consumed nationally, including losses in transformation and distribution. See "Practical Field Mapping" guide for detailed fuel group definitions and SIEC code mappings.
+          </p>
+        </MethodologyModal>
+      </div>
       <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50">
         <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
           <span className="text-2xl">⚡</span>
@@ -251,43 +286,6 @@ export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear 
             </div>
           )
         })}
-      </div>
-
-      {/* Methodology & Data Sources */}
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
-        <div className="space-y-2 text-xs text-gray-700">
-          <p>
-            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) - GIC (Gross Inland Consumption) decomposed by fuel type
-          </p>
-          <p>
-            <strong>Fuel Families:</strong> 
-            <span className="block ml-2 mt-1">
-              • Coal & Solid Fuels (coal, lignite, coke) | 
-              • Peat | 
-              • Oil Shale | 
-              • Natural Gas | 
-              • Oil & Petroleum Products | 
-              • Renewables (hydro, wind, solar, biomass, geothermal) | 
-              • Waste (non-renewable waste) | 
-              • Nuclear | 
-              • Electricity (net imports) | 
-              • Heat (district heating)
-            </span>
-          </p>
-          <p>
-            <strong>Unit:</strong> Mtoe (Million tonnes of Oil Equivalent) - aggregation of primary and secondary fuel contributions to total GIC
-          </p>
-          <p>
-            <strong>Aggregation:</strong> Multi-country view shows combined GIC across selected countries; single-country view shows national fuel composition
-          </p>
-          <p>
-            <strong>Coverage:</strong> All countries in the dataset from 2005 to present (annual data)
-          </p>
-          <p>
-            <strong>Note:</strong> Fuel mix decomposition includes all energy types consumed nationally, including losses in transformation and distribution. See "Practical Field Mapping" guide for detailed fuel group definitions and SIEC code mappings.
-          </p>
-        </div>
       </div>
     </section>
   ) : null;

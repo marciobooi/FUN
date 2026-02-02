@@ -1,6 +1,7 @@
 import React from 'react'
 import { FuelFamilySelector } from './ui/FuelFamilySelector'
 import { MetricsGrid } from './ui/MetricsGrid'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 export function EnergyMetricsOverview({
   selectedCountries,
@@ -254,10 +255,9 @@ export function EnergyMetricsOverview({
         isLoadingFamilyData={isLoadingFamilyData}
       />
 
-      {/* Methodology & Data Sources */}
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h4 className="font-semibold text-gray-800 mb-2">📋 Methodology & Data Sources</h4>
-        <div className="space-y-2 text-xs text-gray-700">
+      {/* Methodology Modal */}
+      <div className="mt-6 flex justify-center">
+        <MethodologyModal title="Energy Metrics Overview - Methodology">
           <p>
             <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy balance by product) and nrg_quant (Energy quantities)
           </p>
@@ -286,7 +286,7 @@ export function EnergyMetricsOverview({
           <p>
             <strong>Note:</strong> Energy balance accounting: PRD + IMP - EXP = Available Energy (accounting for stock changes). Final consumption excludes transformation losses. See "Practical Field Mapping" guide for detailed metric definitions and SIEC code mappings.
           </p>
-        </div>
+        </MethodologyModal>
       </div>
     </>
   )
