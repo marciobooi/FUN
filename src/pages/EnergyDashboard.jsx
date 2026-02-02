@@ -16,6 +16,7 @@ import { PeakSeasonalDemand } from '../components/PeakSeasonalDemand'
 import { SelfSufficiencyRatio } from '../components/SelfSufficiencyRatio'
 import { ComparisonTools } from '../components/ComparisonTools'
 import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
+import { SecurityOfSupplyIndicators } from '../components/SecurityOfSupplyIndicators'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -252,6 +253,14 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
       {/* Electricity Generation Breakdown Section */}
       {selectedCountries.length > 0 && (
         <ElectricityGenerationBreakdown
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+        />
+      )}
+
+      {/* Security of Supply Indicators Section */}
+      {selectedCountries.length > 0 && (
+        <SecurityOfSupplyIndicators
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
         />
