@@ -148,27 +148,67 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
       
       <HeroSection year={selectedYear} />
       
-      <Section title="Energy Sources" subtitle="INPUT STREAMS" index="01" color="blue" decorations={<DataBubbles data={fuelChartData} />}>
+      <Section 
+        title="Energy Sources" 
+        subtitle="INPUT STREAMS" 
+        index="01" 
+        color="blue" 
+        decorations={<DataBubbles data={fuelChartData} />}
+        story="Every nation describes a unique energetic fingerprint. From deep earth fossils to the capture of wind and sun, this composition defines both industrial potential and ecological responsibility."
+      >
         <EnergyMixContent data={fuelChartData} country={selectedCountries[0]} />
       </Section>
 
-      <Section title="Ecology Status" subtitle="RENEWABLE TRANSITION" index="02" align="right" color="green">
+      <Section 
+        title="Ecology Status" 
+        subtitle="RENEWABLE TRANSITION" 
+        index="02" 
+        align="right" 
+        color="green"
+        story="The planetary challenge of our century is the shift to sustainability. We track the pulse of this green transition, measuring how much of the grid has been reclaimed by renewable natural flows."
+      >
         <RenewableContent share={renewableShare} total={totalFuel} renewables={fuelData.renewables || 0} />
       </Section>
 
-      <Section title="Supply Chain" subtitle="PRODUCTION VS IMPORTS" index="03" color="orange">
+      <Section 
+        title="Supply Chain" 
+        subtitle="PRODUCTION VS IMPORTS" 
+        index="03" 
+        color="orange"
+        story="Energy sovereignty is a delicate balance. This metric reveals the tension between domestic resilience and global necessity, illustrating just how self-reliant—or interconnected—a nation truly stands."
+      >
         <ProductionContent data={countryData} total={totalProduction} totalImports={totalImports} />
       </Section>
 
-      <Section title="Vital Signs" subtitle="IMPORT DEPENDENCY" index="04" align="right" color="red">
+      <Section 
+        title="Vital Signs" 
+        subtitle="IMPORT DEPENDENCY" 
+        index="04" 
+        align="right" 
+        color="red"
+        story="Reliance on external partners weaves a complex web of geopolitical necessity. High dependency signals vulnerability and trade integration, while autonomy grants strategic freedom."
+      >
         <DependencyContent data={countryData} />
       </Section>
 
-      <Section title="Consumer Grid" subtitle="SECTOR CONSUMPTION" index="05" color="indigo">
+      <Section 
+        title="Consumer Grid" 
+        subtitle="SECTOR CONSUMPTION" 
+        index="05" 
+        color="indigo"
+        story="Power is generated to be consumed. This breakdown exposes the economic heartbeat of the nation—where the gigawatts flow, from the furnaces of heavy industry to the warmth of family homes."
+      >
         <ConsumptionContent data={sectorChartData} country={selectedCountries[0]} />
       </Section>
 
-      <Section title="Data Packet" subtitle="SUMMARY METRICS" index="06" align="right" color="violet">
+      <Section 
+        title="Data Packet" 
+        subtitle="SUMMARY METRICS" 
+        index="06" 
+        align="right" 
+        color="violet"
+        story="Insight begins with aggregation. These key performance indicators distill millions of data points into actionable intelligence, providing a clear, high-level snapshot of the current energetic landscape."
+      >
         <InsightsContent 
           production={totalProduction} 
           imports={totalImports} 
@@ -301,7 +341,7 @@ function HeroSection({ year }) {
   )
 }
 
-function Section({ children, title, subtitle, index, align = 'left', color = 'blue', decorations = null }) {
+function Section({ children, title, subtitle, index, align = 'left', color = 'blue', decorations = null, story = null }) {
   const isRight = align === 'right';
   
   // Dynamic color mapping for decorations
@@ -350,6 +390,18 @@ function Section({ children, title, subtitle, index, align = 'left', color = 'bl
                 ))}
               </h2>
               <div className={`w-12 h-2 bg-gradient-to-r ${colorMap} mb-6 rounded-full`} />
+              
+              {/* Narrative Story Block */}
+              {story && (
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.8 }}
+                  className="text-slate-500 text-lg font-light leading-relaxed border-l-2 border-slate-300 pl-4 py-1"
+                >
+                  {story}
+                </motion.p>
+              )}
             </div>
           </motion.div>
 
