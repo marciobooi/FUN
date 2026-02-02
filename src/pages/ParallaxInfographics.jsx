@@ -182,6 +182,70 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
   )
 }
 
+// 3D Animated Energy Core (Tsemko-inspired style)
+const EnergyStructure3D = () => {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none [perspective:1000px] overflow-hidden">
+      <div className="relative w-[600px] h-[600px] [transform-style:preserve-3d]">
+        
+        {/* Outer Rotating Disc */}
+        <motion.div
+          animate={{ rotateX: [0, 360], rotateY: [0, 180], rotateZ: [0, 90] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border-[1px] border-slate-300/30 bg-gradient-to-tr from-blue-100/10 to-transparent backdrop-blur-[1px]"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+           <div className="absolute inset-0 rounded-full border-4 border-l-blue-400/30 border-t-transparent border-r-transparent border-b-transparent" />
+        </motion.div>
+
+        {/* Middle Gyro Ring */}
+        <motion.div
+          animate={{ rotateX: [360, 0], rotateY: [180, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-[15%] rounded-full border-[2px] border-indigo-200/20 shadow-[0_0_30px_rgba(99,102,241,0.1)]"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+           {/* Floating Particles on Ring */}
+           <div className="absolute top-0 left-1/2 w-4 h-4 -ml-2 bg-indigo-400 rounded-full shadow-lg" />
+           <div className="absolute bottom-0 left-1/2 w-3 h-3 -ml-1.5 bg-purple-400 rounded-full shadow-lg" />
+        </motion.div>
+
+        {/* Inner Turbine Blocks */}
+        <motion.div
+          animate={{ rotateZ: 360, rotateX: 45 }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-[30%] rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm"
+          style={{ transformStyle: "preserve-3d" }}
+        >
+             <div className="absolute inset-2 border border-white/20 rounded-xl" />
+        </motion.div>
+
+        {/* Core Energy Source */}
+        <motion.div
+          animate={{ scale: [0.8, 1.1, 0.8], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-[42%] rounded-full bg-gradient-to-br from-blue-400 to-cyan-300 blur-2xl opacity-60 mix-blend-screen"
+        />
+        
+        {/* Orbiting Satellite */}
+        <motion.div
+           animate={{ rotate: 360 }}
+           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+           className="absolute inset-[-10%]"
+        >
+           <motion.div 
+             className="w-8 h-8 bg-white/80 backdrop-blur-md rounded-xl border border-white shadow-xl flex items-center justify-center text-[8px]"
+             animate={{ rotate: -360 }}
+             transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+           >
+             ⚡
+           </motion.div>
+        </motion.div>
+      </div>
+    </div>
+  )
+}
+
 function HeroSection({ year }) {
   const { scrollY } = useScroll()
   const y = useTransform(scrollY, [0, 500], [0, 200])
@@ -191,6 +255,8 @@ function HeroSection({ year }) {
   return (
     <div className="relative h-screen flex items-center justify-center overflow-hidden">
       
+      <EnergyStructure3D />
+
       <motion.div style={{ y, opacity, scale }} className="z-10 text-center px-4 relative">
         <TiltCard className="inline-block mb-8">
           <motion.div 
