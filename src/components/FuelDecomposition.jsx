@@ -50,43 +50,55 @@ const FUEL_COLORS = {
   'H8000': '#F97316'             // Orange-500
 }
 
-// Function to flatten fuel families for chart data
-function createFuelDataFromFamilies(families) {
+// Function to flatten fuel families for chart data using real fuel mix data
+function createFuelDataFromFamilies(families, fuelMixData) {
   const result = []
+  
+  // Calculate total consumption for percentage calculation
+  const totalConsumption = Object.values(fuelMixData).reduce((sum, value) => sum + (value || 0), 0)
 
   families.forEach(family => {
     if (family.children && family.children.length > 0) {
-      // Add main category
+      // Add main category using real data
+      const familyValue = fuelMixData[family.id] || 0
+      const percentage = totalConsumption > 0 ? (familyValue / totalConsumption) * 100 : 0
+      
       result.push({
         id: family.id,
         name: family.name,
         category: family.category,
         description: family.description,
-        value: Math.floor(Math.random() * 20) + 5, // Mock data - replace with real data
+        value: Math.round(percentage * 10) / 10, // Real data as percentage
         color: FUEL_COLORS[family.id] || '#6B7280'
       })
 
-      // Add children with smaller values
+      // Add children with real values
       family.children.forEach(child => {
         if (child.children && child.children.length > 0) {
+          const childValue = fuelMixData[child.id] || 0
+          const childPercentage = totalConsumption > 0 ? (childValue / totalConsumption) * 100 : 0
+          
           result.push({
             id: child.id,
             name: child.name,
             category: child.category,
             parent: family.name,
-            value: Math.floor(Math.random() * 10) + 2, // Mock data
+            value: Math.round(childPercentage * 10) / 10, // Real data as percentage
             color: FUEL_COLORS[child.id] || '#9CA3AF'
           })
         }
       })
     } else {
-      // Leaf node
+      // Leaf node with real data
+      const leafValue = fuelMixData[family.id] || 0
+      const leafPercentage = totalConsumption > 0 ? (leafValue / totalConsumption) * 100 : 0
+      
       result.push({
         id: family.id,
         name: family.name,
         category: family.category,
         description: family.description,
-        value: Math.floor(Math.random() * 15) + 3, // Mock data
+        value: Math.round(leafPercentage * 10) / 10, // Real data as percentage
         color: FUEL_COLORS[family.id] || '#6B7280'
       })
     }
@@ -95,9 +107,9 @@ function createFuelDataFromFamilies(families) {
   return result
 }
 
-export function FuelDecomposition({ countryCode, year }) {
-  // Create fuel data from fuel families
-  const fuelData = createFuelDataFromFamilies(fuelFamilies)
+export function FuelDecomposition({ countryCode, year, fuelMix }) {
+  // Create fuel data from fuel families using real fuel mix data
+  const fuelData = createFuelDataFromFamilies(fuelFamilies, fuelMix || {})
 
   // Group by category for better organization
   const primaryFuels = fuelData.filter(f => f.category === 'primary')

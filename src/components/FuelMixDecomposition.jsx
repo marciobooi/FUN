@@ -137,7 +137,12 @@ export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear 
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {selectedCountries.map(country => (
-          <FuelDecomposition key={country} countryCode={country} year={selectedYear} />
+          <FuelDecomposition 
+            key={country} 
+            countryCode={country} 
+            year={selectedYear} 
+            fuelMix={fuelMix[country] || {}}
+          />
         ))}
       </div>
     </section>

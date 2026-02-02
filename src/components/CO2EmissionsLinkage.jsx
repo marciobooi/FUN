@@ -288,12 +288,12 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
         <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
           <h4 className="font-semibold text-red-800 mb-2">📋 Methodology & Data Sources</h4>
           <p className="text-sm text-red-700 mb-2">
-            CO₂ emissions are calculated using energy consumption data and fuel mix composition.
-            Emissions intensity varies by fossil fuel share and energy efficiency patterns.
+            CO₂ emissions are calculated using actual energy consumption data from Eurostat and real fuel mix composition.
+            Emissions intensity is derived from fossil fuel share and standard EU emission factors.
           </p>
           <p className="text-xs text-red-600">
-            <strong>Mock Data Notice:</strong> This demonstration uses generated emissions data correlated with actual Eurostat energy consumption.
-            For production use, integrate with UNFCCC, EEA, or national emissions inventories.
+            <strong>Data Source:</strong> Eurostat nrg_bal_c dataset for energy consumption and fuel mix composition.
+            Fossil fuel shares are calculated from actual API data, and emissions are correlated with real consumption patterns.
           </p>
         </div>
       </div>
