@@ -430,7 +430,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
 
       {/* CO₂ Emissions Linkage Section */}
       {selectedCountries.length > 0 && (
-        <CO2EmissionsLinkage selectedCountries={selectedCountries} />
+        <CO2EmissionsLinkage selectedCountries={selectedCountries} fuelMix={fuelMix} />
       )}
 
       {/* Energy Intensity Metrics Section */}

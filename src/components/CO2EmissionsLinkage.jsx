@@ -2,11 +2,22 @@ import React, { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
 
-export function CO2EmissionsLinkage({ selectedCountries }) {
+export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
   const [emissionsData, setEmissionsData] = useState({})
   const [isLoadingEmissions, setIsLoadingEmissions] = useState(false)
 
-  // Generate mock CO₂ emissions data
+  // Calculate fossil fuel share from fuel mix data
+  const calculateFossilShare = (countryFuelMix) => {
+    const fossilFuels = ['solidFossil', 'oil', 'gas']
+    const totalConsumption = Object.values(countryFuelMix).reduce((sum, value) => sum + (value || 0), 0)
+
+    if (totalConsumption === 0) return 0.6 // Default to 60% if no data
+
+    const fossilConsumption = fossilFuels.reduce((sum, fuel) => sum + (countryFuelMix[fuel] || 0), 0)
+    return fossilConsumption / totalConsumption
+  }
+
+  // Generate CO₂ emissions data
   useEffect(() => {
     const generateEmissionsData = async () => {
       if (selectedCountries.length === 0) {
@@ -30,14 +41,9 @@ export function CO2EmissionsLinkage({ selectedCountries }) {
             const energyData = await fetchEnergyData([country], year)
             const consumption = energyData[country]?.consumptionRaw || 0
 
-            // Use mock fossil fuel shares based on country (simplified approach)
-            // In production, this would come from actual fuel mix data
-            const mockFossilShares = {
-              'DE': 0.6, 'FR': 0.4, 'IT': 0.7, 'ES': 0.5, 'NL': 0.8, 'BE': 0.4, 'AT': 0.3, 'SE': 0.2, 'DK': 0.3, 'FI': 0.4,
-              'PL': 0.8, 'CZ': 0.7, 'HU': 0.6, 'SK': 0.6, 'SI': 0.5, 'EE': 0.7, 'LV': 0.6, 'LT': 0.7, 'MT': 0.9, 'CY': 0.9,
-              'LU': 0.3, 'PT': 0.5, 'GR': 0.7, 'IE': 0.6, 'HR': 0.6, 'RO': 0.7, 'BG': 0.8, 'NO': 0.3, 'CH': 0.4, 'UK': 0.5
-            }
-            const fossilShare = mockFossilShares[country] || 0.6 // Default to 60% fossil fuels
+            // Get actual fossil fuel share from fuel mix data if available
+            const countryFuelMix = fuelMix[country] || {}
+            const fossilShare = calculateFossilShare(countryFuelMix)
 
             // Generate realistic CO₂ emissions based on consumption and fossil fuel share
             // EU average CO₂ intensity is about 0.25-0.35 tonnes CO₂ per tonne of oil equivalent
@@ -80,7 +86,7 @@ export function CO2EmissionsLinkage({ selectedCountries }) {
     }
 
     generateEmissionsData()
-  }, [selectedCountries])
+  }, [selectedCountries, fuelMix])
 
   if (selectedCountries.length === 0) {
     return null
