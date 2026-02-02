@@ -23,14 +23,15 @@ function App() {
 
   const { data, fuelMix, sectors, years, availableCountries, isLoading } = useEurostatData(selectedCountries, selectedYear)
 
+  const containerClass = viewMode === 'infographics' ? 'w-full' : 'max-w-7xl mx-auto'
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100 selection:text-blue-900">
       {/* Header */}
       <Header viewMode={viewMode} setViewMode={setViewMode} />
 
-      <main className="pt-28 pb-20 px-4">
-        <div className="max-w-7xl mx-auto">
+      <main className="pt-28 pb-20">
+        <div className={containerClass}>
           
           <AnimatePresence mode="wait">
             {viewMode === 'dashboard' && (
