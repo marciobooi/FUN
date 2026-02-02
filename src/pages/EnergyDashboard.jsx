@@ -12,6 +12,7 @@ import { EnergyDependencyIndicator } from '../components/EnergyDependencyIndicat
 import { CO2EmissionsLinkage } from '../components/CO2EmissionsLinkage'
 import { EnergyIntensityMetrics } from '../components/EnergyIntensityMetrics'
 import { TransformationEfficiency } from '../components/TransformationEfficiency'
+import { PeakSeasonalDemand } from '../components/PeakSeasonalDemand'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -218,6 +219,14 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
           data={data}
+        />
+      )}
+
+      {/* Peak & Seasonal Demand Section */}
+      {selectedCountries.length > 0 && (
+        <PeakSeasonalDemand
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
         />
       )}
     </div>
