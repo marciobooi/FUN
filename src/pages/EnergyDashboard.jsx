@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { fuelFamilies } from '../data/siecCodes'
 import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixDataForCodes } from '../services/eurostat'
+import { getAvailableYears } from '../utils/yearUtils'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { EnergyMetricsOverview } from '../components/EnergyMetricsOverview'
 import { DashboardHeader } from '../components/DashboardHeader'
@@ -59,7 +60,9 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 600))
 
-        const years = [2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2010, 2005, 2000, 1995, 1990]
+        const allYears = await getAvailableYears()
+        // Use all available years for historical trend analysis
+        const years = allYears
         const intensityData = {}
 
         for (const year of years) {
@@ -111,7 +114,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
     }
 
     generateIntensityData()
-  }, [selectedCountries])
+  }, [selectedCountries, selectedYear])
 
   // Calculate fossil fuel share from fuel mix data
   const calculateFossilShare = (fuelMix) => {
@@ -430,7 +433,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
 
       {/* CO₂ Emissions Linkage Section */}
       {selectedCountries.length > 0 && (
-        <CO2EmissionsLinkage selectedCountries={selectedCountries} fuelMix={fuelMix} />
+        <CO2EmissionsLinkage selectedCountries={selectedCountries} fuelMix={fuelMix} selectedYear={selectedYear} />
       )}
 
       {/* Energy Intensity Metrics Section */}
@@ -450,7 +453,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {selectedCountries.map(countryCode => {
-                const currentYearData = intensityData[2023]?.[countryCode]
+                const currentYearData = intensityData[selectedYear]?.[countryCode]
                 if (!currentYearData) return null
 
                 return (
@@ -548,7 +551,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
                 <ResponsiveContainer width="100%" height={300}>
                   {(() => {
                     const bubbleData = selectedCountries.map(country => {
-                      const data = intensityData[2023]?.[country]
+                      const data = intensityData[selectedYear]?.[country]
                       return data ? {
                         country,
                         perCapita: data.energyPerCapita,

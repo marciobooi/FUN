@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
+import { getAvailableYears } from '../utils/yearUtils'
 
-export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
+export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }) {
   const [emissionsData, setEmissionsData] = useState({})
   const [isLoadingEmissions, setIsLoadingEmissions] = useState(false)
 
@@ -27,13 +28,14 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
 
       setIsLoadingEmissions(true)
       try {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Get available years from dataset
+        const years = await getAvailableYears()
+        // Use recent years for analysis (up to selected year)
+        const recentYears = years.filter(y => y <= selectedYear).slice(0, 5)
 
-        const years = [2023, 2022, 2021, 2020, 2019]
         const emissionsData = {}
 
-        for (const year of years) {
+        for (const year of recentYears) {
           const yearData = {}
 
           for (const country of selectedCountries) {
@@ -86,7 +88,7 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
     }
 
     generateEmissionsData()
-  }, [selectedCountries, fuelMix])
+  }, [selectedCountries, fuelMix, selectedYear])
 
   if (selectedCountries.length === 0) {
     return null
@@ -108,7 +110,7 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {selectedCountries.map(countryCode => {
-            const currentYearData = emissionsData[2023]?.[countryCode]
+            const currentYearData = emissionsData[selectedYear]?.[countryCode]
             if (!currentYearData) return null
 
             return (
@@ -206,7 +208,7 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
             <ResponsiveContainer width="100%" height={300}>
               {(() => {
                 const scatterData = selectedCountries.map(country => {
-                  const data = emissionsData[2023]?.[country]
+                  const data = emissionsData[selectedYear]?.[country]
                   return data ? {
                     country,
                     intensity: data.co2Intensity,
@@ -254,10 +256,10 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix }) {
 
         {/* Sector Breakdown */}
         <div className="bg-gray-50 p-4 rounded-xl">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">CO₂ Emissions by Sector (2023)</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">CO₂ Emissions by Sector ({selectedYear})</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {selectedCountries.map(countryCode => {
-              const countryData = emissionsData[2023]?.[countryCode]
+              const countryData = emissionsData[selectedYear]?.[countryCode]
               if (!countryData) return null
 
               const sectors = countryData.sectors

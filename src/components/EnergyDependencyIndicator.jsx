@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
+import { getAvailableYears } from '../utils/yearUtils'
 
 export function EnergyDependencyIndicator({ selectedCountries, selectedYear, data }) {
   const [dependencyData, setDependencyData] = useState({})
@@ -16,8 +17,11 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
 
       setIsLoadingDependency(true)
       try {
-        // Fetch data for last 5 years
-        const years = [2023, 2022, 2021, 2020, 2019]
+        // Get available years from dataset
+        const allYears = await getAvailableYears()
+        // Use recent years for trend analysis
+        const years = allYears.filter(y => y <= selectedYear).slice(0, 5).reverse()
+        
         const historicalData = {}
 
         for (const year of years) {
@@ -35,7 +39,7 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
     }
 
     fetchDependencyData()
-  }, [selectedCountries])
+  }, [selectedCountries, selectedYear])
 
   // Calculate energy dependency for a country and year
   const calculateDependency = (countryData, countryCode) => {
@@ -111,12 +115,12 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
 
         {/* Time Series Chart */}
         <div className="mb-8">
-          <h3 className="text-xl font-bold text-gray-800 mb-4">Dependency Trend (2019-2023)</h3>
+          <h3 className="text-xl font-bold text-gray-800 mb-4">Dependency Trend</h3>
           <div className="bg-gray-50 rounded-2xl p-6">
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={(() => {
-                const years = [2019, 2020, 2021, 2022, 2023]
-                return years.map(year => {
+                const allYears = Object.keys(dependencyData).map(Number).sort((a, b) => a - b).filter(y => y <= selectedYear)
+                return allYears.map(year => {
                   const dataPoint = { year: year.toString() }
                   selectedCountries.forEach(countryCode => {
                     const dependency = calculateDependency(dependencyData[year], countryCode)
