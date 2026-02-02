@@ -15,6 +15,7 @@ import { TransformationEfficiency } from '../components/TransformationEfficiency
 import { PeakSeasonalDemand } from '../components/PeakSeasonalDemand'
 import { SelfSufficiencyRatio } from '../components/SelfSufficiencyRatio'
 import { ComparisonTools } from '../components/ComparisonTools'
+import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -245,6 +246,14 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         <ComparisonTools 
           selectedCountries={selectedCountries} 
           selectedYear={selectedYear} 
+        />
+      )}
+
+      {/* Electricity Generation Breakdown Section */}
+      {selectedCountries.length > 0 && (
+        <ElectricityGenerationBreakdown
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
         />
       )}
     </div>
