@@ -13,6 +13,7 @@ import { CO2EmissionsLinkage } from '../components/CO2EmissionsLinkage'
 import { EnergyIntensityMetrics } from '../components/EnergyIntensityMetrics'
 import { TransformationEfficiency } from '../components/TransformationEfficiency'
 import { PeakSeasonalDemand } from '../components/PeakSeasonalDemand'
+import { SelfSufficiencyRatio } from '../components/SelfSufficiencyRatio'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -225,6 +226,14 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
       {/* Peak & Seasonal Demand Section */}
       {selectedCountries.length > 0 && (
         <PeakSeasonalDemand
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+        />
+      )}
+
+      {/* Self-Sufficiency Ratio Section */}
+      {selectedCountries.length > 0 && (
+        <SelfSufficiencyRatio
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
         />
