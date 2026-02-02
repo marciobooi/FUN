@@ -1,6 +1,6 @@
-import { PieChart, Pie, Cell, Tooltip, Legend } from 'recharts'
 import { motion } from 'framer-motion'
 import { ChartContainer } from './ui/ChartContainer'
+import { PieChartComponent } from '../components/ui/charts'
 
 const SECTOR_COLORS = {
   industry: '#3B82F6',    // Blue
@@ -43,40 +43,25 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
 
           const total = chartData.reduce((sum, d) => sum + d.value, 0)
 
+          const pieData = chartData.map(d => ({
+            ...d,
+            color: SECTOR_COLORS[d.key] || '#999'
+          }))
+
           return (
             <div key={country} className="text-center">
               <h4 className="font-bold text-gray-700 mb-4">{country}</h4>
               <ChartContainer style={{ height: '200px' }}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={70}
-                      paddingAngle={2}
-                    >
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={SECTOR_COLORS[entry.key] || '#999'} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      formatter={(value, name, props) => [
-                        `${value.toLocaleString()} KTOE`,
-                        `${name} (${country})`
-                      ]}
-                      labelFormatter={() => ''}
-                      contentStyle={{ 
-                        borderRadius: '8px', 
-                        border: 'none', 
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        fontSize: '14px'
-                      }}
-                    />
-                  </PieChart>
-                </ChartContainer>
+                <PieChartComponent
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={70}
+                  customLabel={(name, value) => `${name} ${value.toLocaleString()} KTOE`}
+                  customTooltip={(value) => [`${value.toLocaleString()} KTOE`, country]}
+                  height={200}
+                />
+              </ChartContainer>
               <p className="text-sm text-gray-500 mt-2">Total: {total.toLocaleString()} KTOE</p>
             </div>
           )

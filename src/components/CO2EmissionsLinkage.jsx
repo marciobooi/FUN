@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
+import { ComposedChartComponent, ScatterChartComponent, BarChartComponent } from '../components/ui/charts'
 
 export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }) {
   const [emissionsData, setEmissionsData] = useState({})
@@ -138,119 +138,98 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
           {/* Dual-Axis Time Series: CO₂ vs Renewable Share */}
           <div className="bg-gray-50 p-4 rounded-xl">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">CO₂ Emissions vs Renewable Energy Share</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              {(() => {
-                // Create data with individual country series
-                const chartData = Object.keys(emissionsData).sort().map(year => {
-                  const yearData = emissionsData[year]
-                  const dataPoint = { year: parseInt(year) }
+            {(() => {
+              // Create data with individual country series
+              const chartData = Object.keys(emissionsData).sort().map(year => {
+                const yearData = emissionsData[year]
+                const dataPoint = { year: parseInt(year) }
 
-                  // Add emissions and renewable share for each country
-                  selectedCountries.forEach(country => {
-                    const countryData = yearData[country]
-                    if (countryData) {
-                      dataPoint[`${country}_emissions`] = countryData.totalEmissions
-                      dataPoint[`${country}_renewable`] = Math.round(countryData.renewableShare * 100)
-                    }
-                  })
-
-                  return dataPoint
+                // Add emissions and renewable share for each country
+                selectedCountries.forEach(country => {
+                  const countryData = yearData[country]
+                  if (countryData) {
+                    dataPoint[`${country}_emissions`] = countryData.totalEmissions
+                    dataPoint[`${country}_renewable`] = Math.round(countryData.renewableShare * 100)
+                  }
                 })
 
-                return chartData.length > 0 ? (
-                  <ComposedChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="year" />
-                    <YAxis yAxisId="left" orientation="left" label={{ value: 'CO₂ Emissions (kt)', angle: -90, position: 'insideLeft' }} />
-                    <YAxis yAxisId="right" orientation="right" label={{ value: 'Renewable Share (%)', angle: 90, position: 'insideRight' }} />
-                    <Tooltip
-                      formatter={(value, name) => {
-                        const [country, metric] = name.split('_')
-                        if (metric === 'emissions') {
-                          return [`${value.toLocaleString()} kt`, `${country} CO₂ Emissions`]
-                        } else {
-                          return [`${value}%`, `${country} Renewable Share`]
-                        }
-                      }}
-                    />
-                    <Legend />
-                    {selectedCountries.map((country, index) => (
-                      <React.Fragment key={country}>
-                        <Bar
-                          yAxisId="left"
-                          dataKey={`${country}_emissions`}
-                          fill={`hsl(${index * 360 / selectedCountries.length}, 70%, 50%)`}
-                          name={`${country}_emissions`}
-                        />
-                        <Line
-                          yAxisId="right"
-                          type="monotone"
-                          dataKey={`${country}_renewable`}
-                          stroke={`hsl(${index * 360 / selectedCountries.length}, 70%, 30%)`}
-                          strokeWidth={2}
-                          name={`${country}_renewable`}
-                        />
-                      </React.Fragment>
-                    ))}
-                  </ComposedChart>
-                ) : (
+                return dataPoint
+              })
+
+              if (chartData.length > 0) {
+                const bars = selectedCountries.map((country, index) => ({
+                  dataKey: `${country}_emissions`,
+                  fill: `hsl(${index * 360 / selectedCountries.length}, 70%, 50%)`,
+                  name: `${country} CO₂`
+                }))
+
+                const lines = selectedCountries.map((country, index) => ({
+                  dataKey: `${country}_renewable`,
+                  stroke: `hsl(${index * 360 / selectedCountries.length}, 70%, 30%)`,
+                  name: `${country} Renewable %`,
+                  yAxisId: 'right'
+                }))
+
+                return (
+                  <ComposedChartComponent
+                    data={chartData}
+                    bars={bars}
+                    lines={lines}
+                    xAxisKey="year"
+                    yAxisLabel="CO₂ Emissions (kt)"
+                    yAxis2Label="Renewable Share (%)"
+                    height={300}
+                  />
+                )
+              } else {
+                return (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     No emissions data available
                   </div>
                 )
-              })()}
-            </ResponsiveContainer>
+              }
+            })()}
           </div>
 
           {/* Scatter Plot: CO₂ Intensity vs Fossil Fuel Share */}
           <div className="bg-gray-50 p-4 rounded-xl">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">CO₂ Intensity vs Fossil Fuel Dependency</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              {(() => {
-                const scatterData = selectedCountries.map(country => {
-                  const data = emissionsData[selectedYear]?.[country]
-                  return data ? {
-                    country,
-                    intensity: data.co2Intensity,
-                    fossilShare: data.fossilFuelShare * 100,
-                    emissions: data.totalEmissions
-                  } : null
-                }).filter(Boolean)
-                return scatterData.length > 0 ? (
-                  <ScatterChart data={scatterData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" dataKey="fossilShare" name="Fossil Fuel Share" label={{ value: 'Fossil Fuel Share (%)', position: 'insideBottom', offset: -5 }} />
-                    <YAxis type="number" dataKey="intensity" name="CO₂ Intensity" label={{ value: 'CO₂ Intensity (tCO₂/toe)', angle: -90, position: 'insideLeft' }} />
-                    <Tooltip
-                      cursor={{ strokeDasharray: '3 3' }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload
-                          return (
-                            <div className="bg-white p-3 border border-gray-300 rounded shadow-lg">
-                              <p className="font-semibold text-gray-800">{`Country: ${data.country}`}</p>
-                              <p className="text-red-600">{`CO₂ Intensity: ${data.intensity.toFixed(3)} tCO₂/toe`}</p>
-                              <p className="text-orange-600">{`Fossil Fuel Share: ${data.fossilShare.toFixed(1)}%`}</p>
-                              <p className="text-blue-600">{`Total Emissions: ${data.emissions.toLocaleString()} kt`}</p>
-                            </div>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                    <Scatter dataKey="intensity">
-                      {scatterData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={`hsl(${index * 360 / scatterData.length}, 70%, 50%)`} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    No emissions data available
-                  </div>
-                )
-              })()}
-            </ResponsiveContainer>
+            {(() => {
+              const scatterData = selectedCountries.map(country => {
+                const data = emissionsData[selectedYear]?.[country]
+                return data ? {
+                  country,
+                  fossilShare: data.fossilFuelShare * 100,
+                  intensity: data.co2Intensity,
+                  emissions: data.totalEmissions
+                } : null
+              }).filter(Boolean)
+
+              const scatters = [{
+                dataKey: 'intensity',
+                fill: '#ef4444',
+                name: 'CO₂ Intensity'
+              }]
+
+              return scatterData.length > 0 ? (
+                <ScatterChartComponent
+                  data={scatterData}
+                  scatters={scatters}
+                  xAxisKey="fossilShare"
+                  yAxisKey="intensity"
+                  sizeKey="emissions"
+                  xAxisLabel="Fossil Fuel Share (%)"
+                  yAxisLabel="CO₂ Intensity (tCO₂/toe)"
+                  bubbleScale={0.5}
+                  height={300}
+                  customTooltip={(value) => [value.toFixed(3), 'CO₂ Intensity']}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No emissions data available
+                </div>
+              )
+            })()}
           </div>
         </div>
 

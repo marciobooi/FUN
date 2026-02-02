@@ -1,6 +1,6 @@
-import { PieChart, Pie, Cell, Legend, Tooltip } from 'recharts'
 import { ChartContainer } from './ui/ChartContainer'
 import { fuelFamilies } from '../data/siecCodes'
+import { PieChartComponent } from '../components/ui/charts'
 
 // Enhanced color mapping based on fuel families
 const FUEL_COLORS = {
@@ -129,29 +129,14 @@ export function FuelDecomposition({ countryCode, year, fuelMix }) {
             Primary Energy Sources
           </h4>
           <ChartContainer style={{ height: '250px' }}>
-            <PieChart>
-              <Pie
-                data={primaryFuels}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name.split(' ')[0]} ${value}%`}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {primaryFuels.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value, name, props) => [
-                  `${value}%`,
-                  props.payload.name
-                ]}
-                labelStyle={{ color: '#374151' }}
-              />
-            </PieChart>
+            <PieChartComponent
+              data={primaryFuels}
+              dataKey="value"
+              nameKey="name"
+              outerRadius={70}
+              customLabel={(name, value) => `${name.split(' ')[0]} ${value}%`}
+              height={250}
+            />
           </ChartContainer>
         </div>
 
@@ -162,29 +147,14 @@ export function FuelDecomposition({ countryCode, year, fuelMix }) {
             Secondary Energy Sources
           </h4>
           <ChartContainer style={{ height: '250px' }}>
-            <PieChart>
-              <Pie
-                data={secondaryFuels}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name.split(' ')[0]} ${value}%`}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {secondaryFuels.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value, name, props) => [
-                  `${value}%`,
-                  props.payload.name
-                ]}
-                labelStyle={{ color: '#374151' }}
-              />
-            </PieChart>
+            <PieChartComponent
+              data={secondaryFuels}
+              dataKey="value"
+              nameKey="name"
+              outerRadius={70}
+              customLabel={(name, value) => `${name.split(' ')[0]} ${value}%`}
+              height={250}
+            />
           </ChartContainer>
         </div>
       </div>

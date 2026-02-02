@@ -1,6 +1,6 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import { motion } from 'framer-motion'
 import { ChartContainer } from './ui/ChartContainer'
+import { BarChartComponent } from '../components/ui/charts'
 
 const FUEL_COLORS = {
   solidFossil: '#374151',  // Gray-700
@@ -40,7 +40,13 @@ export function FuelMixChart({ data, selectedCountries }) {
     }
   })
 
+  // Transform data for chart component
   const fuelKeys = Object.keys(FUEL_COLORS)
+  const barConfig = fuelKeys.map(key => ({
+    dataKey: key,
+    fill: FUEL_COLORS[key],
+    name: FUEL_LABELS[key] || key
+  }))
 
   return (
     <motion.div
@@ -51,44 +57,18 @@ export function FuelMixChart({ data, selectedCountries }) {
       <h3 className="text-lg font-bold text-gray-900 mb-6">Energy Supply by Source (KTOE)</h3>
       
       <ChartContainer style={{ height: '400px' }}>
-          <BarChart
-            data={chartData}
-            layout="vertical"
-            margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
-            <XAxis type="number" axisLine={false} tickLine={false} />
-            <YAxis 
-              dataKey="country" 
-              type="category" 
-              axisLine={false} 
-              tickLine={false}
-              tick={{ fontSize: 14, fontWeight: 600 }}
-            />
-            <Tooltip 
-              contentStyle={{ 
-                borderRadius: '12px', 
-                border: 'none', 
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                padding: '12px'
-              }}
-              formatter={(value, name) => [value.toLocaleString() + ' KTOE', FUEL_LABELS[name] || name]}
-            />
-            <Legend 
-              formatter={(value) => FUEL_LABELS[value] || value}
-              wrapperStyle={{ paddingTop: '20px' }}
-            />
-            {fuelKeys.map(key => (
-              <Bar 
-                key={key} 
-                dataKey={key} 
-                stackId="a" 
-                fill={FUEL_COLORS[key]}
-                radius={[0, 0, 0, 0]}
-              />
-            ))}
-          </BarChart>
-        </ChartContainer>
+        <BarChartComponent
+          data={chartData}
+          bars={barConfig}
+          xAxisKey="country"
+          layout="horizontal"
+          height={400}
+          customTooltip={(value, name) => [
+            `${value.toLocaleString()} KTOE`,
+            FUEL_LABELS[name] || name
+          ]}
+        />
+      </ChartContainer>
     </motion.div>
   )
 }

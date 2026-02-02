@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
+import { LineChartComponent } from '../components/ui/charts'
 
 export function EnergyDependencyIndicator({ selectedCountries, selectedYear, data }) {
   const [dependencyData, setDependencyData] = useState({})
@@ -117,51 +118,33 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
         <div className="mb-8">
           <h3 className="text-xl font-bold text-gray-800 mb-4">Dependency Trend</h3>
           <div className="bg-gray-50 rounded-2xl p-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={(() => {
-                const allYears = Object.keys(dependencyData).map(Number).sort((a, b) => a - b).filter(y => y <= selectedYear)
-                return allYears.map(year => {
-                  const dataPoint = { year: year.toString() }
-                  selectedCountries.forEach(countryCode => {
-                    const dependency = calculateDependency(dependencyData[year], countryCode)
-                    dataPoint[countryCode] = dependency
-                  })
-                  return dataPoint
+            {(() => {
+              const chartData = Object.keys(dependencyData).map(Number).sort((a, b) => a - b).filter(y => y <= selectedYear).map(year => {
+                const dataPoint = { year: year.toString() }
+                selectedCountries.forEach(countryCode => {
+                  const dependency = calculateDependency(dependencyData[year], countryCode)
+                  dataPoint[countryCode] = dependency
                 })
-              })()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="year" 
-                  stroke="#6b7280"
-                  fontSize={12}
+                return dataPoint
+              })
+
+              const lines = selectedCountries.map((countryCode, index) => ({
+                dataKey: countryCode,
+                stroke: `hsl(${(index * 137) % 360}, 70%, 50%)`,
+                name: countryCode
+              }))
+
+              return (
+                <LineChartComponent
+                  data={chartData}
+                  lines={lines}
+                  xAxisKey="year"
+                  yAxisLabel="Dependency (%)"
+                  height={300}
+                  customTooltip={(value) => [`${value}%`, 'Dependency']}
                 />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  label={{ value: 'Dependency (%)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                  formatter={(value, name) => [`${value}%`, name]}
-                />
-                {selectedCountries.map((countryCode, index) => (
-                  <Line
-                    key={countryCode}
-                    type="monotone"
-                    dataKey={countryCode}
-                    stroke={`hsl(${(index * 137) % 360}, 70%, 50%)`}
-                    strokeWidth={3}
-                    dot={{ fill: `hsl(${(index * 137) % 360}, 70%, 50%)`, strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, stroke: `hsl(${(index * 137) % 360}, 70%, 50%)`, strokeWidth: 2 }}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+              )
+            })()}
           </div>
         </div>
 
@@ -169,48 +152,51 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
         <div>
           <h3 className="text-xl font-bold text-gray-800 mb-4">Country Comparison ({selectedYear})</h3>
           <div className="bg-gray-50 rounded-2xl p-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={selectedCountries.map(countryCode => {
+            {(() => {
+              const barData = selectedCountries.map(countryCode => {
                 const dependency = calculateDependency(data, countryCode)
                 return {
                   country: countryCode,
-                  dependency: dependency,
+                  dependency: dependency || 0,
                   fill: dependency > 50 ? '#ef4444' : dependency > 25 ? '#f97316' : '#22c55e'
                 }
-              })}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="country" 
-                  stroke="#6b7280"
-                  fontSize={12}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  fontSize={12}
-                  label={{ value: 'Dependency (%)', angle: -90, position: 'insideLeft' }}
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                  formatter={(value) => [`${value}%`, 'Energy Dependency']}
-                />
-                <Bar dataKey="dependency" radius={[4, 4, 0, 0]}>
-                  {selectedCountries.map((countryCode, index) => {
-                    const dependency = calculateDependency(data, countryCode)
-                    return (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={dependency > 50 ? '#ef4444' : dependency > 25 ? '#f97316' : '#22c55e'} 
-                      />
-                    )
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+              })
+
+              return (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={barData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="country" 
+                      stroke="#6b7280"
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="#6b7280"
+                      fontSize={12}
+                      label={{ value: 'Dependency (%)', angle: -90, position: 'insideLeft' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px'
+                      }}
+                      formatter={(value) => [`${value}%`, 'Energy Dependency']}
+                    />
+                    <Bar dataKey="dependency" radius={[4, 4, 0, 0]}>
+                      {barData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.fill} 
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )
+            })()}
           </div>
         </div>
 
