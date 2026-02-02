@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter } from 'recharts'
-import { fetchEnergyData } from '../services/eurostat'
+import { fetchEnergyData, fetchPopulationData, fetchGDPData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 
 /**
@@ -46,6 +46,7 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
   const [selectedMetric, setSelectedMetric] = useState('GIC')
   const [normalizeBy, setNormalizeBy] = useState('raw') // raw, per-capita, per-gdp
   const [comparisonData, setComparisonData] = useState({})
+  const [normalizationData, setNormalizationData] = useState({}) // Population and GDP data
   const [isLoading, setIsLoading] = useState(false)
 
   // Fetch comparison data
@@ -71,14 +72,19 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
             }
           })
         } else if (comparisonMode === COMPARISON_MODES.YEAR) {
-          // Fetch both baseline and current year for selected country
-          if (compareCountries.length > 0) {
-            const country = compareCountries[0]
-            const [baselineData, currentData] = await Promise.all([
-              fetchEnergyData([country], baselineYear),
-              fetchEnergyData([country], currentYear)
-            ])
-
+          // Fetch both baseline and current year for all selected countries
+          const promises = compareCountries.flatMap(country => [
+            fetchEnergyData([country], baselineYear),
+            fetchEnergyData([country], currentYear)
+          ])
+          
+          const results = await Promise.all(promises)
+          
+          for (let i = 0; i < compareCountries.length; i++) {
+            const country = compareCountries[i]
+            const baselineData = results[i * 2]
+            const currentData = results[i * 2 + 1]
+            
             data[country] = {
               baseline: baselineData[country],
               current: currentData[country],
@@ -94,6 +100,20 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
         }
 
         setComparisonData(data)
+        
+        // Fetch normalization data (population and GDP)
+        const yearForNorm = comparisonMode === COMPARISON_MODES.YEAR ? currentYear : currentYear
+        const popData = await fetchPopulationData(compareCountries, yearForNorm)
+        const gdpData = await fetchGDPData(compareCountries, yearForNorm)
+        
+        const normData = {}
+        compareCountries.forEach(country => {
+          normData[country] = {
+            population: (popData[country] || 1) / 1000, // Convert thousands to millions
+            gdp: (gdpData[country] || 1) / 1000 // Convert million EUR to billion EUR
+          }
+        })
+        setNormalizationData(normData)
       } catch (error) {
         console.error('Error fetching comparison data:', error)
         setComparisonData({})
@@ -103,35 +123,45 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
     }
 
     fetchData()
-  }, [comparisonMode, compareCountries, baselineYear, currentYear])
+  }, [comparisonMode, compareCountries, baselineYear, currentYear, normalizeBy])
 
-  const handleCountryToggle = (country) => {
-    setCompareCountries(prev => {
-      if (prev.includes(country)) {
-        return prev.filter(c => c !== country)
-      } else if (prev.length < 5) {
-        return [...prev, country]
-      }
-      return prev
-    })
-  }
+
 
   // Prepare data for geo comparison
   const getGeoComparisonData = () => {
     return compareCountries.map(country => {
       const countryData = comparisonData[country] || {}
+      const normData = normalizationData[country] || { population: 1, gdp: 1 }
       const imports = countryData.importsRaw || 0
       const exports = countryData.exportsRaw || 0
       const consumption = countryData.consumptionRaw || 0
       const dependence = consumption > 0 ? ((imports - exports) / consumption) * 100 : 0
       
+      let gicValue = countryData.grossInlandConsumptionRaw || 0
+      let prodValue = countryData.productionRaw || 0
+      let impValue = imports
+      let expValue = exports
+      
+      // Apply normalization
+      if (normalizeBy === 'per-capita') {
+        gicValue = gicValue / normData.population
+        prodValue = prodValue / normData.population
+        impValue = impValue / normData.population
+        expValue = expValue / normData.population
+      } else if (normalizeBy === 'per-gdp') {
+        gicValue = gicValue / normData.gdp
+        prodValue = prodValue / normData.gdp
+        impValue = impValue / normData.gdp
+        expValue = expValue / normData.gdp
+      }
+      
       return {
         name: getCountryName(country),
         code: country,
-        GIC: countryData.grossInlandConsumptionRaw || 0,
-        production: countryData.productionRaw || 0,
-        imports: imports,
-        exports: exports,
+        GIC: gicValue,
+        production: prodValue,
+        imports: impValue,
+        exports: expValue,
         dependence: parseFloat(dependence.toFixed(1))
       }
     })
@@ -141,40 +171,69 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
   const getYearComparisonData = () => {
     if (compareCountries.length === 0) return []
     
-    const country = compareCountries[0]
-    const data = comparisonData[country]
-    if (!data) return []
+    const metrics = ['GIC', 'Production', 'Imports', 'Exports']
+    const metricLabels = {
+      'GIC': 'Gross Inland Consumption',
+      'Production': 'Primary Production',
+      'Imports': 'Imports',
+      'Exports': 'Exports'
+    }
+    const metricKeyMap = {
+      'GIC': 'grossInlandConsumption',
+      'Production': 'production',
+      'Imports': 'imports',
+      'Exports': 'exports'
+    }
+    const deltaKeyMap = {
+      'GIC': 'GIC',
+      'Production': 'production',
+      'Imports': 'imports',
+      'Exports': 'exports'
+    }
+    
+    return metrics.map(metric => {
+      const countryData = []
+      
+      compareCountries.forEach(country => {
+        const data = comparisonData[country]
+        if (!data) return
 
-    return [
-      {
-        metric: 'GIC',
-        baseline: data.baseline?.grossInlandConsumptionRaw || 0,
-        current: data.current?.grossInlandConsumptionRaw || 0,
-        delta: data.deltas?.GIC_abs || 0,
-        deltaPercent: data.deltas?.GIC_pct || 0
-      },
-      {
-        metric: 'Production',
-        baseline: data.baseline?.productionRaw || 0,
-        current: data.current?.productionRaw || 0,
-        delta: data.deltas?.production_abs || 0,
-        deltaPercent: data.deltas?.production_pct || 0
-      },
-      {
-        metric: 'Imports',
-        baseline: data.baseline?.importsRaw || 0,
-        current: data.current?.importsRaw || 0,
-        delta: data.deltas?.imports_abs || 0,
-        deltaPercent: data.deltas?.imports_pct || 0
-      },
-      {
-        metric: 'Exports',
-        baseline: data.baseline?.exportsRaw || 0,
-        current: data.current?.exportsRaw || 0,
-        delta: data.deltas?.exports_abs || 0,
-        deltaPercent: data.deltas?.exports_pct || 0
+        const normData = normalizationData[country] || { population: 1, gdp: 1 }
+        const fieldKey = metricKeyMap[metric]
+        const deltaKey = deltaKeyMap[metric]
+        
+        let baseline = data.baseline?.[`${fieldKey}Raw`] || 0
+        let current = data.current?.[`${fieldKey}Raw`] || 0
+        
+        // Apply normalization
+        if (normalizeBy === 'per-capita') {
+          baseline = baseline / normData.population
+          current = current / normData.population
+        } else if (normalizeBy === 'per-gdp') {
+          baseline = baseline / normData.gdp
+          current = current / normData.gdp
+        }
+        
+        // Recalculate deltas after normalization
+        const delta = current - baseline
+        const deltaPercent = baseline > 0 ? ((current - baseline) / baseline) * 100 : 0
+        
+        countryData.push({
+          country,
+          countryName: getCountryName(country),
+          baseline,
+          current,
+          delta,
+          deltaPercent
+        })
+      })
+
+      return {
+        metric,
+        metricLabel: metricLabels[metric],
+        countries: countryData
       }
-    ]
+    })
   }
 
   const geoData = getGeoComparisonData()
@@ -192,6 +251,8 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
             <p className="text-gray-600 text-sm">Interactive exploration across countries and years</p>
           </div>
         </div>
+
+
 
         {/* Comparison Mode Tabs */}
         <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -212,29 +273,13 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
 
         {/* Mode-specific controls */}
         {comparisonMode === COMPARISON_MODES.GEO && (
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Select Countries (max 5)</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedCountries.map(country => (
-                <button
-                  key={country}
-                  onClick={() => handleCountryToggle(country)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    compareCountries.includes(country)
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-500'
-                  }`}
-                >
-                  {country}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4">
+          <div className="mb-6 p-4 bg-gray-50 rounded-xl grid grid-cols-2 gap-4">
+            <div>
               <label className="text-sm font-medium text-gray-700 block mb-2">Select Metric</label>
               <select
                 value={selectedMetric}
                 onChange={(e) => setSelectedMetric(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
                 {METRICS.map(metric => (
                   <option key={metric.id} value={metric.id}>
@@ -243,28 +288,30 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Normalize By</label>
+              <div className="flex gap-2">
+                {['raw', 'per-capita', 'per-gdp'].map(option => (
+                  <button
+                    key={option}
+                    onClick={() => setNormalizeBy(option)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-1 ${
+                      normalizeBy === option
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-500'
+                    }`}
+                  >
+                    {option === 'raw' ? 'Absolute' : option === 'per-capita' ? 'Per Capita' : 'Per GDP'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {comparisonMode === COMPARISON_MODES.YEAR && (
           <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Select Country</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selectedCountries.map(country => (
-                <button
-                  key={country}
-                  onClick={() => setCompareCountries([country])}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    compareCountries[0] === country
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-500'
-                  }`}
-                >
-                  {country}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-2">Baseline Year</label>
                 <input
@@ -286,29 +333,27 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-2">Normalize By</label>
+                <div className="flex gap-2">
+                  {['raw', 'per-capita', 'per-gdp'].map(option => (
+                    <button
+                      key={option}
+                      onClick={() => setNormalizeBy(option)}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-1 ${
+                        normalizeBy === option
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-500'
+                      }`}
+                    >
+                      {option === 'raw' ? 'Absolute' : option === 'per-capita' ? 'Per Capita' : 'Per GDP'}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
-
-        {/* Normalization toggle */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Normalize By</label>
-          <div className="flex gap-2">
-            {['raw', 'per-capita', 'per-gdp'].map(option => (
-              <button
-                key={option}
-                onClick={() => setNormalizeBy(option)}
-                className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                  normalizeBy === option
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-white border border-gray-300 text-gray-700 hover:border-purple-500'
-                }`}
-              >
-                {option === 'raw' ? 'Absolute' : option === 'per-capita' ? 'Per Capita' : 'Per GDP'}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -322,7 +367,10 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
           <div>
             <div className="bg-gray-50 p-4 rounded-xl mb-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Country Comparison ({currentYear})</h3>
-              <p className="text-xs text-gray-500">Comparing {METRICS.find(m => m.id === selectedMetric)?.label}</p>
+              <p className="text-xs text-gray-500">
+                Comparing {METRICS.find(m => m.id === selectedMetric)?.label} 
+                {normalizeBy === 'per-capita' ? ' (per capita)' : normalizeBy === 'per-gdp' ? ' (per GDP)' : ''}
+              </p>
             </div>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={geoData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
@@ -356,40 +404,38 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
           </div>
         )}
 
-        {/* Year Comparison (Dumbbell-style) */}
+        {/* Year Comparison (Compact Grid) */}
         {comparisonMode === COMPARISON_MODES.YEAR && !isLoading && yearData.length > 0 && (
           <div>
             <div className="bg-gray-50 p-4 rounded-xl mb-4">
               <h3 className="text-lg font-semibold text-gray-800 mb-2">Year-over-Year Change</h3>
-              <p className="text-xs text-gray-500">{getCountryName(compareCountries[0])}: {baselineYear} → {currentYear}</p>
+              <p className="text-xs text-gray-500">{baselineYear} → {currentYear}</p>
             </div>
-            <div className="space-y-4">
-              {yearData.map((item, idx) => (
-                <div key={idx} className="p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-800">{item.metric}</h4>
-                    <div className="text-right">
-                      <p className={`text-lg font-bold ${item.deltaPercent >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        {item.deltaPercent >= 0 ? '+' : ''}{item.deltaPercent.toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {item.deltaPercent >= 0 ? '+' : ''}{item.delta.toLocaleString('en-US', { maximumFractionDigits: 0 })} KTOE
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="w-16">{item.baseline.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
-                    <div className="flex-1 h-2 bg-gray-300 rounded-full relative">
-                      <div 
-                        className="h-full bg-blue-500 rounded-full" 
-                        style={{ width: `${Math.min((item.baseline / Math.max(item.baseline, item.current)) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className="w-16 text-right">{item.current.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
-                  </div>
-                  <div className="flex justify-between mt-2 text-xs text-gray-600">
-                    <span>{baselineYear}</span>
-                    <span>{currentYear}</span>
+            <div className="grid grid-cols-2 gap-4">
+              {yearData.map((metricGroup) => (
+                <div key={metricGroup.metric} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">{metricGroup.metricLabel}</h4>
+                  <div className="space-y-3">
+                    {metricGroup.countries.map((country, idx) => (
+                      <div key={idx} className="text-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-gray-700">{country.countryName}</span>
+                          <span className={`text-sm font-bold ${country.deltaPercent >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {country.deltaPercent >= 0 ? '+' : ''}{country.deltaPercent.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="w-12 text-gray-600">{country.baseline.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                          <div className="flex-1 h-1.5 bg-gray-300 rounded-full">
+                            <div 
+                              className="h-full bg-blue-500 rounded-full" 
+                              style={{ width: `${Math.min((country.baseline / Math.max(country.baseline, country.current)) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="w-12 text-right text-gray-600">{country.current.toLocaleString('en-US', { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -451,6 +497,23 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
             </p>
           </div>
         )}
+                {/* Data Sources & Methodology */}
+        <div className="mt-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
+          <h4 className="font-semibold text-purple-800 mb-2">📋 Data Sources & Methodology</h4>
+          <p className="text-sm text-purple-700 mb-3">
+            <strong>Multi-dimensional energy comparison across countries and years</strong>
+          </p>
+          <ul className="text-sm text-purple-700 space-y-1 ml-4 list-disc mb-3">
+            <li><strong>Energy Balance:</strong> Eurostat nrg_bal_c - Gross Inland Consumption (GIC), Primary Production, Imports, Exports (KTOE)</li>
+            <li><strong>Population Data:</strong> Eurostat demo_pjan - Total population (thousands) for per capita normalization</li>
+            <li><strong>GDP Data:</strong> Eurostat namq_10_gdp - Gross Domestic Product in million EUR (2010 chain-linked prices) for per GDP normalization</li>
+            <li><strong>Normalization Methods:</strong> Absolute (KTOE) | Per Capita (KTOE per million inhabitants) | Per GDP (KTOE per billion EUR)</li>
+            <li><strong>Year-over-Year Analysis:</strong> Baseline year vs current year comparison showing percentage and absolute changes</li>
+          </ul>
+          <p className="text-xs text-purple-600">
+            <strong>Data Source:</strong> All data fetched directly from Eurostat APIs. Data availability varies by country and year (typically 2005-present).
+          </p>
+        </div>
       </div>
     </div>
   )
