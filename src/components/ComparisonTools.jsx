@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter } from 'recharts'
-import { fetchEnergyData, fetchPopulationData, fetchGDPData } from '../services/eurostat'
+import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 
 /**
@@ -47,6 +47,7 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
   const [normalizeBy, setNormalizeBy] = useState('raw') // raw, per-capita, per-gdp
   const [comparisonData, setComparisonData] = useState({})
   const [normalizationData, setNormalizationData] = useState({}) // Population and GDP data
+  const [fuelMixData, setFuelMixData] = useState({}) // Fuel mix breakdown data
   const [isLoading, setIsLoading] = useState(false)
 
   // Fetch comparison data
@@ -97,6 +98,15 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
           compareCountries.forEach(country => {
             data[country] = energyData[country]
           })
+          
+          // Fetch detailed fuel mix breakdown
+          try {
+            const fuelData = await fetchFuelMixData(compareCountries, currentYear)
+            setFuelMixData(fuelData)
+          } catch (error) {
+            console.warn('Could not fetch detailed fuel mix data:', error)
+            setFuelMixData({})
+          }
         }
 
         setComparisonData(data)
@@ -454,22 +464,38 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
               {compareCountries.map(country => {
                 const data = comparisonData[country] || {}
                 const gic = data.grossInlandConsumptionRaw || 0
+                const countryFuelData = fuelMixData[country] || {}
+                
+                // Map UI fuel types to API fuel codes
+                const fuelMapping = {
+                  coal: countryFuelData.solidFossil || 0,
+                  oil: countryFuelData.oil || 0,
+                  gas: countryFuelData.gas || 0,
+                  nuclear: countryFuelData.nuclear || 0,
+                  renewables: countryFuelData.renewables || 0,
+                  other: (countryFuelData.waste || 0) + (countryFuelData.heat || 0)
+                }
+                
                 return (
                   <div key={country} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <h4 className="font-semibold text-gray-800 mb-4">{getCountryName(country)}</h4>
                     {gic > 0 ? (
                       <>
                         <div className="space-y-2 mb-4">
-                          {FUEL_TYPES.map(fuel => (
-                            <div key={fuel.id} className="flex items-center gap-3">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: fuel.color }}
-                              ></div>
-                              <span className="text-sm text-gray-700 flex-1">{fuel.label}</span>
-                              <span className="text-sm font-semibold text-gray-800">–</span>
-                            </div>
-                          ))}
+                          {FUEL_TYPES.map(fuel => {
+                            const value = fuelMapping[fuel.id] || 0
+                            const percentage = gic > 0 ? ((value / gic) * 100).toFixed(1) : 0
+                            return (
+                              <div key={fuel.id} className="flex items-center gap-3">
+                                <div 
+                                  className="w-3 h-3 rounded-full" 
+                                  style={{ backgroundColor: fuel.color }}
+                                ></div>
+                                <span className="text-sm text-gray-700 flex-1">{fuel.label}</span>
+                                <span className="text-sm font-semibold text-gray-800">{percentage}%</span>
+                              </div>
+                            )
+                          })}
                         </div>
                         <p className="text-xs text-gray-500">
                           <strong>Total GIC:</strong> {gic.toLocaleString('en-US', { maximumFractionDigits: 0 })} KTOE

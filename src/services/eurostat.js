@@ -165,13 +165,13 @@ export const fetchFuelMixData = async (countries, year) => {
     params.append('format', 'JSON');
     countries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
-    params.append('nrg_bal', 'TO'); // Total supply
+    params.append('nrg_bal', 'GIC'); // Gross Inland Consumption - includes all energy types including nuclear
     // Add all fuel codes for detailed breakdown
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
     const response = await axios.get(BASE_URL, { params });
-    return transformFuelMixResponse(response.data, countries, 'TO', year);
+    return transformFuelMixResponse(response.data, countries, 'GIC', year);
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
     return {};
