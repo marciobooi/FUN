@@ -1,5 +1,19 @@
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { fuelFamilies } from '../data/siecCodes'
-import { FuelDecomposition } from './FuelDecomposition'
+
+// Color mapping for fuel families
+const FAMILY_COLORS = {
+  'C0000X0350-0370': '#374151',  // Gray - Coal
+  'P1000': '#92400E',             // Brown - Peat
+  'S2000': '#2C1810',             // Dark Brown - Oil Shale
+  'G3000': '#F59E0B',             // Amber - Gas
+  'O4000XBIO': '#3B82F6',         // Blue - Oil
+  'RA000': '#10B981',             // Green - Renewables
+  'W6100_6220': '#92400E',        // Brown - Waste
+  'N900H': '#8B5CF6',             // Violet - Nuclear
+  'E7000': '#EF4444',             // Red - Electricity
+  'H8000': '#F97316'              // Orange - Heat
+}
 
 export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear }) {
   // Calculate energy mix for selected countries
@@ -136,14 +150,106 @@ export function FuelMixDecomposition({ fuelMix, selectedCountries, selectedYear 
         </p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {selectedCountries.map(country => (
-          <FuelDecomposition 
-            key={country} 
-            countryCode={country} 
-            year={selectedYear} 
-            fuelMix={fuelMix[country] || {}}
-          />
-        ))}
+        {selectedCountries.map(country => {
+          const countryData = fuelMix[country]
+          if (!countryData) return null
+
+          // Mapping between fuel family IDs and data keys
+          const fuelMapping = {
+            'C0000X0350-0370': 'solidFossil',
+            'P1000': 'peat',
+            'S2000': 'oilShale',
+            'G3000': 'gas',
+            'O4000XBIO': 'oil',
+            'RA000': 'renewables',
+            'W6100_6220': 'waste',
+            'N900H': 'nuclear',
+            'E7000': 'electricity',
+            'H8000': 'heat'
+          }
+
+          // Create pie data for fuel families
+          const pieData = fuelFamilies
+            .map(family => {
+              const dataKey = fuelMapping[family.id]
+              const value = dataKey && countryData[dataKey] ? parseFloat(countryData[dataKey]) : 0
+              return {
+                name: family.name,
+                value: parseFloat(value.toFixed(1)),
+                id: family.id
+              }
+            })
+            .filter(item => item.value > 0)
+
+          if (pieData.length === 0) return null
+
+          const total = pieData.reduce((sum, item) => sum + item.value, 0)
+
+          return (
+            <div key={country} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 overflow-hidden">
+              {/* KPI Card - All Fuels */}
+              <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                <h4 className="text-lg font-bold text-gray-800 mb-3">{country}</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {pieData.map(item => (
+                    <div key={item.id} className="bg-white/70 rounded-lg p-2 border border-blue-100">
+                      <div className="text-xs font-semibold text-gray-700">{item.name}</div>
+                      <div className="text-sm font-bold text-blue-600">{item.value.toLocaleString()}</div>
+                      <div className="text-xs text-gray-500">{(item.value / total * 100).toFixed(1)}%</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pie Chart */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h5 className="text-sm font-semibold text-gray-800 mb-4">Fuel Mix by Family</h5>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name.split(' ')[0]} ${(value / total * 100).toFixed(0)}%`}
+                      outerRadius={60}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={FAMILY_COLORS[entry.id] || '#6B7280'} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => [
+                        `${value.toLocaleString()} Mtoe`,
+                        'Consumption'
+                      ]}
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: 'none',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        fontSize: '12px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Fuel Breakdown Table */}
+              <div className="mt-4 space-y-2">
+                {pieData.map(item => (
+                  <div key={item.id} className="flex justify-between items-center text-xs p-2 bg-gray-50 rounded border border-gray-100">
+                    <span className="text-gray-700">{item.name}</span>
+                    <span className="font-semibold text-gray-800">
+                      {item.value.toLocaleString()} Mtoe ({(item.value / total * 100).toFixed(1)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </section>
   ) : null;
