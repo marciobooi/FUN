@@ -38,6 +38,36 @@ const SECTOR_LABELS = {
   commercial: 'COMMERCIAL'
 }
 
+const COUNTRY_NAMES = {
+  AT: 'Austria',
+  BE: 'Belgium',
+  BG: 'Bulgaria',
+  HR: 'Croatia',
+  CY: 'Cyprus',
+  CZ: 'Czech Republic',
+  DK: 'Denmark',
+  EE: 'Estonia',
+  FI: 'Finland',
+  FR: 'France',
+  DE: 'Germany',
+  GR: 'Greece',
+  HU: 'Hungary',
+  IE: 'Ireland',
+  IT: 'Italy',
+  LV: 'Latvia',
+  LT: 'Lithuania',
+  LU: 'Luxembourg',
+  MT: 'Malta',
+  NL: 'Netherlands',
+  PL: 'Poland',
+  PT: 'Portugal',
+  RO: 'Romania',
+  SK: 'Slovakia',
+  SI: 'Slovenia',
+  ES: 'Spain',
+  SE: 'Sweden'
+}
+
 // 3D Tilt Card Component
 const TiltCard = ({ children, className = "" }) => {
   const x = useMotionValue(0)
@@ -113,16 +143,29 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
   const totalProduction = countryData.reduce((a, b) => a + b.production, 0)
   const totalImports = countryData.reduce((a, b) => a + b.imports, 0)
 
-  // Fuel mix data
-  const fuelData = fuelMix[selectedCountries[0]] || {}
-  const totalFuel = Object.values(fuelData).reduce((a, b) => a + b, 0)
-  const renewableShare = totalFuel > 0 ? ((fuelData.renewables || 0) / totalFuel * 100).toFixed(1) : 0
+  // Fuel mix data for all selected countries
+  const fuelMixData = selectedCountries.map(country => {
+    const fuelData = fuelMix[country] || {}
+    const totalFuel = Object.values(fuelData).reduce((a, b) => a + b, 0)
+    const chartData = Object.entries(fuelData).map(([key, value]) => ({
+      name: FUEL_LABELS[key] || key,
+      value,
+      fill: FUEL_COLORS[key] || '#666'
+    })).filter(d => d.value > 0).sort((a,b) => b.value - a.value)
+    
+    return {
+      country,
+      chartData,
+      totalFuel,
+      renewables: fuelData.renewables || 0
+    }
+  })
 
-  const fuelChartData = Object.entries(fuelData).map(([key, value]) => ({
-    name: FUEL_LABELS[key] || key,
-    value,
-    fill: FUEL_COLORS[key] || '#666'
-  })).filter(d => d.value > 0).sort((a,b) => b.value - a.value)
+  // Use first country for renewable share calculation
+  const firstCountryFuel = fuelMixData[0] || { totalFuel: 0, renewables: 0 }
+  const renewableShare = firstCountryFuel.totalFuel > 0 
+    ? ((firstCountryFuel.renewables / firstCountryFuel.totalFuel) * 100).toFixed(1) 
+    : 0
 
   // Sector data
   const sectorData = sectors[selectedCountries[0]] || {}
@@ -153,10 +196,10 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
         subtitle="INPUT STREAMS" 
         index="01" 
         color="blue" 
-        decorations={<DataBubbles data={fuelChartData} />}
+        decorations={<DataBubbles data={fuelMixData[0]?.chartData || []} />}
         story="Every nation describes a unique energetic fingerprint. From deep earth fossils to the capture of wind and sun, this composition defines both industrial potential and ecological responsibility."
       >
-        <EnergyMixContent data={fuelChartData} country={selectedCountries[0]} />
+        <EnergyMixContent data={fuelMixData} />
       </Section>
 
       <Section 
@@ -167,7 +210,7 @@ export function ParallaxInfographics({ data, fuelMix, sectors, selectedCountries
         color="green"
         story="The planetary challenge of our century is the shift to sustainability. We track the pulse of this green transition, measuring how much of the grid has been reclaimed by renewable natural flows."
       >
-        <RenewableContent share={renewableShare} total={totalFuel} renewables={fuelData.renewables || 0} />
+        <RenewableContent share={renewableShare} total={firstCountryFuel.totalFuel} renewables={firstCountryFuel.renewables} />
       </Section>
 
       <Section 
@@ -294,7 +337,7 @@ function HeroSection({ year }) {
   const scale = useTransform(scrollY, [0, 500], [1, 0.8])
 
   return (
-    <div className="relative h-screen flex items-center justify-center overflow-hidden" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
+    <div className="relative h-screen flex items-center justify-center overflow-hidden">
       
       <EnergyStructure3D />
 
@@ -365,8 +408,8 @@ function Section({ children, title, subtitle, index, align = 'left', color = 'bl
   }[color] || 'text-blue-500';
 
   return (
-    <div className="w-full relative min-h-screen flex items-center" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
-      <div className="w-full px-6 md:px-16 lg:px-24 mx-auto relative py-16">
+    <div className="w-full relative">
+      <div className="w-full px-6 md:px-16 mx-auto relative py-16">
         {/* Decorative Grid Lines */}
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
         
@@ -469,7 +512,137 @@ const DataBubbles = ({ data }) => {
   )
 }
 
-function EnergyMixContent({ data, country }) {
+function EnergyMixContent({ data }) {
+  const containerRef = useRef(null)
+  const isMulti = data && data.length > 1
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isInView, setIsInView] = useState(false)
+  const scrollDeltaRef = useRef(0)
+  const isProcessingRef = useRef(false)
+
+  // Detect when section is in view
+  useEffect(() => {
+    if (!isMulti || !containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.5)
+      },
+      { threshold: [0.5] }
+    )
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [isMulti])
+
+  // Lock scroll and handle wheel when in multi-country mode and in view
+  useEffect(() => {
+    if (!isMulti || !isInView) return
+
+    const handleWheel = (e) => {
+      // Allow normal scroll if at boundaries
+      if ((activeIndex === 0 && e.deltaY < 0) || 
+          (activeIndex === data.length - 1 && e.deltaY > 0)) {
+        return // Let page scroll normally
+      }
+
+      e.preventDefault()
+      
+      if (isProcessingRef.current) return
+      
+      scrollDeltaRef.current += e.deltaY
+      
+      if (Math.abs(scrollDeltaRef.current) > 60) {
+        isProcessingRef.current = true
+        
+        if (scrollDeltaRef.current > 0 && activeIndex < data.length - 1) {
+          setActiveIndex(prev => prev + 1)
+        } else if (scrollDeltaRef.current < 0 && activeIndex > 0) {
+          setActiveIndex(prev => prev - 1)
+        }
+        
+        scrollDeltaRef.current = 0
+        setTimeout(() => {
+          isProcessingRef.current = false
+        }, 400)
+      }
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    return () => window.removeEventListener('wheel', handleWheel)
+  }, [isMulti, isInView, activeIndex, data.length])
+
+  if (!data || data.length === 0) return null
+
+  // If single country, render directly
+  if (!isMulti) {
+    const { country, chartData } = data[0]
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center">
+        <EnergyMixSingleCard country={country} chartData={chartData} />
+      </div>
+    )
+  }
+
+  // Multi-country carousel
+  return (
+    <div 
+      ref={containerRef} 
+      className="min-h-[80vh] flex items-center justify-center relative"
+    >
+      <div className="w-full relative">
+        {/* Cards with animation */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeIndex}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="w-full"
+          >
+            <EnergyMixSingleCard 
+              country={data[activeIndex].country} 
+              chartData={data[activeIndex].chartData} 
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Pagination Dots */}
+        <div className="absolute -right-2 md:right-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+          {data.map((d, i) => (
+            <motion.button
+              key={i}
+              animate={{ 
+                scale: i === activeIndex ? 1.5 : 1,
+                backgroundColor: i === activeIndex ? '#3b82f6' : '#cbd5e1'
+              }}
+              transition={{ duration: 0.2 }}
+              className="w-2.5 h-2.5 rounded-full shadow-sm cursor-pointer border-0 p-0"
+              onClick={() => setActiveIndex(i)}
+            />
+          ))}
+        </div>
+
+        {/* Progress Indicator */}
+        <div className="text-center mt-8">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-white/40">
+            <span className="text-xs font-mono text-slate-500">
+              {activeIndex + 1} / {data.length}
+            </span>
+            <span className="text-xs text-slate-400">
+              ↕ Scroll to navigate
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EnergyMixSingleCard({ country, chartData }) {
+  const countryName = COUNTRY_NAMES[country] || country
+  
   return (
     <div className="w-full min-h-[500px] flex items-center justify-center">
        {/* Focused Chart Card */}
@@ -477,8 +650,8 @@ function EnergyMixContent({ data, country }) {
           <div className="bg-white/20 backdrop-blur-sm border border-white/50 p-8 rounded-[40px] shadow-2xl w-[350px] md:w-[450px]">
              <div className="flex justify-between items-center mb-6">
                 <div>
-                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{country}</h3>
-                   <div className="text-xs font-mono text-slate-500 tracking-[0.2em] mt-1">ENERGY_MIX</div>
+                   <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">{countryName}</h3>
+                   <div className="text-xs font-mono text-slate-500 tracking-[0.2em] mt-1">FUEL COMPOSITION</div>
                 </div>
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
              </div>
@@ -487,7 +660,7 @@ function EnergyMixContent({ data, country }) {
                <ResponsiveContainer width="100%" height="100%">
                  <PieChart>
                    <Pie 
-                      data={data} 
+                      data={chartData} 
                       dataKey="value" 
                       nameKey="name" 
                       cx="50%" 
@@ -497,7 +670,7 @@ function EnergyMixContent({ data, country }) {
                       paddingAngle={4}
                       stroke="none"
                     >
-                     {data.map((entry, i) => (
+                     {chartData.map((entry, i) => (
                        <Cell key={i} fill={entry.fill} className="stroke-transparent outline-none drop-shadow-md" />
                      ))}
                    </Pie>
@@ -531,7 +704,7 @@ function EnergyMixContent({ data, country }) {
 
 function RenewableContent({ share, total, renewables }) {
   return (
-    <div className="relative">
+    <div className="relative min-h-[80vh] flex items-center justify-center">
       <TiltCard className="mb-8">
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 p-8 md:p-12 rounded-3xl relative overflow-hidden shadow-xl">
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 blur-[80px] rounded-full pointer-events-none" />
@@ -570,6 +743,8 @@ function RenewableContent({ share, total, renewables }) {
 }
 
 function ProductionSingleCard({ data }) {
+  const countryName = COUNTRY_NAMES[data.country] || data.country
+  
   // Format data for the specific country chart
   // We need an array for BarChart, containing just this country's data
   const chartData = [
@@ -590,7 +765,7 @@ function ProductionSingleCard({ data }) {
       <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-8 rounded-3xl relative shadow-xl">
         <div className="flex justify-between items-center mb-6 border-b border-slate-200 pb-4">
           <div>
-             <div className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-1">{data.country}</div>
+             <div className="text-3xl font-black text-slate-800 uppercase tracking-tighter mb-1">{countryName}</div>
              <div className="flex gap-6 text-xs font-mono text-slate-500">
                 <div>
                    <span className="block text-[10px] text-slate-400 uppercase tracking-wider">Prod</span>
@@ -645,138 +820,120 @@ function ProductionContent({ data }) {
   const containerRef = useRef(null)
   const isMulti = data && data.length > 1
   const [activeIndex, setActiveIndex] = useState(0)
-  const [isLocked, setIsLocked] = useState(false)
+  const [isInView, setIsInView] = useState(false)
   const scrollDeltaRef = useRef(0)
+  const isProcessingRef = useRef(false)
 
-  // Lock body scroll when in multi mode and section is active
+  // Detect when section is in view
   useEffect(() => {
-    if (isLocked && isMulti) {
-      document.body.style.overflow = 'hidden'
-      document.body.style.height = '100vh'
-      return () => {
-        document.body.style.overflow = ''
-        document.body.style.height = ''
-      }
-    }
-  }, [isLocked, isMulti])
+    if (!isMulti || !containerRef.current) return
 
-  // Handle wheel events to cycle through countries when locked
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsInView(entry.isIntersecting && entry.intersectionRatio > 0.5)
+      },
+      { threshold: [0.5] }
+    )
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [isMulti])
+
+  // Lock scroll and handle wheel when in multi-country mode and in view
   useEffect(() => {
-    if (!isMulti || !isLocked) return
+    if (!isMulti || !isInView) return
 
     const handleWheel = (e) => {
+      // Allow normal scroll if at boundaries
+      if ((activeIndex === 0 && e.deltaY < 0) || 
+          (activeIndex === data.length - 1 && e.deltaY > 0)) {
+        return // Let page scroll normally
+      }
+
       e.preventDefault()
-      e.stopPropagation()
+      
+      if (isProcessingRef.current) return
       
       scrollDeltaRef.current += e.deltaY
       
-      // Threshold to trigger change
-      if (Math.abs(scrollDeltaRef.current) > 100) {
-        if (scrollDeltaRef.current > 0) {
-          // Scroll down - next country
-          if (activeIndex < data.length - 1) {
-            setActiveIndex(prev => prev + 1)
-            scrollDeltaRef.current = 0
-          } else {
-            // Unlock on last chart
-            setIsLocked(false)
-            scrollDeltaRef.current = 0
-          }
-        } else {
-          // Scroll up - previous country
-          if (activeIndex > 0) {
-            setActiveIndex(prev => prev - 1)
-            scrollDeltaRef.current = 0
-          } else {
-            // Unlock on first chart when scrolling up
-            setIsLocked(false)
-            scrollDeltaRef.current = 0
-          }
+      if (Math.abs(scrollDeltaRef.current) > 60) {
+        isProcessingRef.current = true
+        
+        if (scrollDeltaRef.current > 0 && activeIndex < data.length - 1) {
+          setActiveIndex(prev => prev + 1)
+        } else if (scrollDeltaRef.current < 0 && activeIndex > 0) {
+          setActiveIndex(prev => prev - 1)
         }
+        
+        scrollDeltaRef.current = 0
+        setTimeout(() => {
+          isProcessingRef.current = false
+        }, 400)
       }
     }
 
     window.addEventListener('wheel', handleWheel, { passive: false })
     return () => window.removeEventListener('wheel', handleWheel)
-  }, [isMulti, isLocked, activeIndex, data.length])
-
-  // Lock when section comes into view in multi mode
-  useEffect(() => {
-    if (!isMulti) return
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-          setIsLocked(true)
-        } else if (!entry.isIntersecting) {
-          setIsLocked(false)
-        }
-      },
-      { threshold: [0.5] }
-    )
-
-    if (containerRef.current) {
-      observer.observe(containerRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [isMulti])
+  }, [isMulti, isInView, activeIndex, data.length])
 
   if (!data || data.length === 0) return null
 
   // If single, just render normally
   if (!isMulti) {
-     return <ProductionSingleCard data={data[0]} />
+     return (
+       <div className="min-h-[70vh] flex items-center justify-center">
+         <ProductionSingleCard data={data[0]} />
+       </div>
+     )
   }
 
   return (
     <div 
       ref={containerRef} 
-      className="relative w-full min-h-screen flex items-center justify-center"
+      className="min-h-[80vh] flex items-center justify-center relative"
     >
-      <div className="w-full">
-         <AnimatePresence mode="wait">
-            {data[activeIndex] && (
-                <motion.div
-                key={activeIndex}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ duration: 0.3, ease: "circOut" }}
-                className="w-full"
-                >
-                <ProductionSingleCard data={data[activeIndex]} />
-                </motion.div>
-            )}
-         </AnimatePresence>
+      <div className="w-full max-w-xl mx-auto relative">
+        {/* Cards with animation */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeIndex}
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            className="w-full"
+          >
+            <ProductionSingleCard data={data[activeIndex]} />
+          </motion.div>
+        </AnimatePresence>
 
-         {/* Pagination Dots */}
-         <div className="absolute -right-4 md:-right-8 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-             {data.map((_, i) => (
-               <motion.div
-                 key={i}
-                 animate={{ 
-                   scale: i === activeIndex ? 1.5 : 1,
-                   backgroundColor: i === activeIndex ? '#f97316' : '#cbd5e1'
-                 }}
-                 className="w-2 h-2 rounded-full shadow-sm transition-colors duration-300 cursor-pointer"
-                 onClick={() => setActiveIndex(i)}
-               />
-             ))}
-           </div>
+        {/* Pagination Dots */}
+        <div className="absolute -right-8 md:-right-12 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-20">
+          {data.map((d, i) => (
+            <motion.button
+              key={i}
+              animate={{ 
+                scale: i === activeIndex ? 1.5 : 1,
+                backgroundColor: i === activeIndex ? '#f97316' : '#cbd5e1'
+              }}
+              transition={{ duration: 0.2 }}
+              className="w-2.5 h-2.5 rounded-full shadow-sm cursor-pointer border-0 p-0"
+              onClick={() => setActiveIndex(i)}
+            />
+          ))}
+        </div>
 
-         {/* Progress Indicator */}
-         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
-           <div className="text-xs font-mono text-slate-400 mb-2">
-             {activeIndex + 1} / {data.length}
-           </div>
-           <motion.div 
-             animate={{ opacity: 1 }}
-             className="text-xs text-slate-400 font-light"
-           >
-             {isLocked ? '🔒 Scroll to cycle' : 'Scroll to enter'}
-           </motion.div>
-         </div>
+        {/* Progress Indicator */}
+        <div className="text-center mt-8">
+          <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-white/40">
+            <span className="text-xs font-mono text-slate-500">
+              {activeIndex + 1} / {data.length}
+            </span>
+            <span className="text-xs text-slate-400">
+              ↕ Scroll to navigate
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -784,8 +941,10 @@ function ProductionContent({ data }) {
 
 function DependencyContent({ data }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="min-h-[80vh] flex items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
       {data.map((d, i) => {
+        const countryName = COUNTRY_NAMES[d.country] || d.country
         const isHigh = d.dependence > 70;
         const colorClass = isHigh ? 'text-rose-600' : d.dependence > 40 ? 'text-amber-600' : 'text-emerald-600';
         const borderColor = isHigh ? 'border-rose-200 bg-rose-50/50' : 'border-white/40 bg-white/40';
@@ -801,9 +960,9 @@ function DependencyContent({ data }) {
             {isHigh && <div className="absolute top-0 right-0 w-12 h-12 bg-rose-400/20 blur-xl"></div>}
             
             <div className="flex justify-between items-start mb-4">
-              <span className="text-xl font-bold text-slate-800">{d.country}</span>
+              <span className="text-xl font-bold text-slate-800">{countryName}</span>
               <div className={`text-xs px-2 py-1 rounded-full bg-white/60 font-bold ${colorClass}`}>
-                {d.dependence.toFixed(1)}% DEP
+                {d.dependence.toFixed(1)}%
               </div>
             </div>
             
@@ -829,6 +988,7 @@ function DependencyContent({ data }) {
           </motion.div>
         )
       })}
+      </div>
     </div>
   )
 }
@@ -837,7 +997,8 @@ function ConsumptionContent({ data, country }) {
   if (!data || data.length === 0) return null
 
   return (
-    <div className="relative group hover:scale-[1.01] transition-transform duration-500">
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="relative group hover:scale-[1.01] transition-transform duration-500 w-full">
        <div className="bg-gradient-to-br from-white/90 via-white/40 to-indigo-50/50 border border-white/40 backdrop-blur-xl p-6 md:p-10 rounded-3xl relative overflow-hidden shadow-xl">
          {/* Decorative Background Elements */}
          <div className="absolute -right-20 -bottom-20 w-64 h-64 border border-indigo-200 rounded-full animate-[spin_10s_linear_infinite]" />
@@ -893,6 +1054,7 @@ function ConsumptionContent({ data, country }) {
            </div>
          </div>
        </div>
+      </div>
     </div>
   )
 }
@@ -906,7 +1068,8 @@ function InsightsContent({ production, imports, renewableShare, countries }) {
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="min-h-[80vh] flex items-center justify-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
       {stats.map((s, i) => (
         <motion.div
           key={s.label}
@@ -921,13 +1084,14 @@ function InsightsContent({ production, imports, renewableShare, countries }) {
           <div className="text-[10px] md:text-xs text-slate-400 uppercase tracking-widest">{s.label}</div>
         </motion.div>
       ))}
+      </div>
     </div>
   )
 }
 
 function FooterSection() {
   return (
-    <div className="min-h-screen flex items-center justify-center border-t border-slate-200 bg-slate-50 text-center relative overflow-hidden" style={{ scrollSnapAlign: 'start', scrollSnapStop: 'always' }}>
+    <div className="min-h-screen flex items-center justify-center border-t border-slate-200 bg-slate-50 text-center relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-100/50 via-transparent to-transparent opacity-60" />
       
       <div className="relative z-10 py-12">
