@@ -462,55 +462,44 @@ function transformChartData(monthlyData, countries, dataType) {
  */
 async function fetchMonthlyDataFromEurostat(datasetCode, country, year) {
   try {
-    // Fetch all 12 months for the year
-    const monthlyValues = []
-    
-    for (let month = 1; month <= 12; month++) {
-      const timeParam = `${year}-${String(month).padStart(2, '0')}`
-      
-      const params = new URLSearchParams()
-      params.append('format', 'JSON')
-      params.append('geo', country)
-      params.append('time', timeParam)
-      
-      // Add parameters based on dataset
-      switch(datasetCode) {
-        case 'nrg_cb_em':
-          // Electricity: nrg_bal=IMP, siec=E7000, unit=GWH
-          params.append('nrg_bal', 'IMP')
-          params.append('siec', 'E7000')
-          params.append('unit', 'GWH')
-          break
-        case 'nrg_cb_gasm':
-          // Gas: nrg_bal=IPRD, siec=G3000, unit=TJ_GCV
-          params.append('nrg_bal', 'IPRD')
-          params.append('siec', 'G3000')
-          params.append('unit', 'TJ_GCV')
-          break
-        case 'nrg_cb_sffm':
-          // Solid fuels: nrg_bal=IPRD, siec=C0100, unit=THS_T
-          params.append('nrg_bal', 'IPRD')
-          params.append('siec', 'C0100')
-          params.append('unit', 'THS_T')
-          break
-        default:
-          throw new Error(`Unknown dataset: ${datasetCode}`)
-      }
-      
-      const response = await axios.get(
-        `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${datasetCode}`,
-        { params, timeout: 5000 }
-      )
+    const params = new URLSearchParams()
+    params.append('format', 'JSON')
+    params.append('geo', country)
 
-      // Extract value from response for the specific time period
-      const value = extractValueFromResponse(response.data, timeParam)
-      monthlyValues.push({
-        month: MONTH_NAMES[month - 1],
-        value: value !== null ? value : 0
-      })
+    const timeParams = Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
+    timeParams.forEach((timeParam) => params.append('time', timeParam))
+
+    switch(datasetCode) {
+      case 'nrg_cb_em':
+        params.append('nrg_bal', 'IMP')
+        params.append('siec', 'E7000')
+        params.append('unit', 'GWH')
+        break
+      case 'nrg_cb_gasm':
+        params.append('nrg_bal', 'IPRD')
+        params.append('siec', 'G3000')
+        params.append('unit', 'TJ_GCV')
+        break
+      case 'nrg_cb_sffm':
+        params.append('nrg_bal', 'IPRD')
+        params.append('siec', 'C0100')
+        params.append('unit', 'THS_T')
+        break
+      default:
+        throw new Error(`Unknown dataset: ${datasetCode}`)
     }
 
-    return monthlyValues
+    const response = await axios.get(
+      `https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/${datasetCode}`,
+      { params, timeout: 5000 }
+    )
+
+    const getValue = createEurostatValueGetter(response.data)
+
+    return timeParams.map((timeParam, index) => ({
+      month: MONTH_NAMES[index],
+      value: getMonthlyValue(response.data, getValue, timeParam) ?? 0,
+    }))
   } catch (error) {
     console.error(`Failed to fetch ${datasetCode} for ${country}:`, error.message)
     throw error
@@ -535,29 +524,45 @@ async function getCachedMonthlyData(cache, datasetCode, country, year) {
 /**
  * Extract numeric value from Eurostat API response for specific time period
  */
-function extractValueFromResponse(data, timeParam) {
-  if (!data || !data.value) return null
-  
-  // Look for value matching the specific time parameter
-  const values = Object.entries(data.value)
-  
-  // Find entry where the key contains the time parameter
-  for (const [key, val] of values) {
-    // Eurostat API response keys can be complex, but we're looking for the time dimension match
-    if (key.includes(timeParam) || Object.keys(data.dimension?.time || {}).some(t => t === timeParam)) {
-      const parsedVal = parseFloat(val)
-      return !isNaN(parsedVal) ? parsedVal : null
+function getMonthlyValue(data, getValue, timeParam) {
+  if (data?.dimension?.time?.category?.index?.[timeParam] === undefined) {
+    return null
+  }
+
+  const timeDimensions = data.dimension.time.category.index
+  const dimensionFilters = { time: timeParam }
+
+  Object.entries(data.dimension).forEach(([dimensionKey, dimensionValue]) => {
+    const categoryValues = Object.keys(dimensionValue?.category?.index || {})
+
+    if (dimensionKey === 'time' || categoryValues.length !== 1) {
+      return
     }
+
+    dimensionFilters[dimensionKey] = categoryValues[0]
+  })
+
+  return getValue(dimensionFilters)
+}
+
+function createEurostatValueGetter(data) {
+  const { value, dimension, id: ids, size: sizes } = data
+  const dimIndices = ids.map((dimId) => dimension[dimId]?.category?.index || {})
+
+  return (filters) => {
+    let linearIndex = 0
+    let multiplier = 1
+
+    for (let position = ids.length - 1; position >= 0; position -= 1) {
+      const dimId = ids[position]
+      const filterValue = filters[dimId]
+      const dimValueIndex = filterValue !== undefined ? (dimIndices[position][filterValue] ?? 0) : 0
+      linearIndex += dimValueIndex * multiplier
+      multiplier *= sizes[position]
+    }
+
+    return value[linearIndex] ?? null
   }
-  
-  // If no specific match, try to get the first value (fallback)
-  const values_array = Object.values(data.value)
-  if (values_array.length > 0) {
-    const val = parseFloat(values_array[0])
-    return !isNaN(val) ? val : null
-  }
-  
-  return null
 }
 
 /**

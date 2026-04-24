@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_bal_c';
+const eurostatResultCache = new Map();
 
 // Mapping for nrg_bal (Balance flow)
 const FLOW_MAPPING = {
@@ -90,6 +91,41 @@ const SECTOR_CODES = {
   'FC_OTH_CP_E': 'commercial'
 };
 
+function buildCacheKey(url, params) {
+  const groupedEntries = new Map();
+
+  for (const [key, value] of params.entries()) {
+    if (!groupedEntries.has(key)) {
+      groupedEntries.set(key, []);
+    }
+
+    groupedEntries.get(key).push(value);
+  }
+
+  const serializedParams = Array.from(groupedEntries.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, values]) => `${key}=${values.slice().sort().join(',')}`)
+    .join('&');
+
+  return `${url}?${serializedParams}`;
+}
+
+async function getCachedEurostatResult(url, params, transform) {
+  const cacheKey = buildCacheKey(url, params);
+
+  if (!eurostatResultCache.has(cacheKey)) {
+    const requestPromise = axios.get(url, { params }).then((response) => transform(response.data));
+    eurostatResultCache.set(cacheKey, requestPromise);
+  }
+
+  try {
+    return await eurostatResultCache.get(cacheKey);
+  } catch (error) {
+    eurostatResultCache.delete(cacheKey);
+    throw error;
+  }
+}
+
 /**
  * Fetch dataset metadata (available years and countries)
  */
@@ -103,8 +139,7 @@ export const fetchDatasetMetadata = async () => {
     params.append('unit', 'KTOE');
     // Don't filter geo or time to get all available
     
-    const response = await axios.get(BASE_URL, { params });
-    const data = response.data;
+    const data = await getCachedEurostatResult(BASE_URL, params, (responseData) => responseData);
     
     if (!data || !data.dimension) {
       return { years: [], countries: [] };
@@ -146,8 +181,11 @@ export const fetchEnergyData = async (countries, year) => {
     params.append('siec', 'TOTAL');
     params.append('unit', 'KTOE');
 
-    const response = await axios.get(BASE_URL, { params });
-    return transformBasicResponse(response.data, countries, year);
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformBasicResponse(responseData, countries, year)
+    );
   } catch (error) {
     console.error('Eurostat API Error:', error);
     throw error;
@@ -170,8 +208,11 @@ export const fetchFuelMixData = async (countries, year) => {
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
-    const response = await axios.get(BASE_URL, { params });
-    return transformFuelMixResponse(response.data, countries, 'GIC', year);
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformFuelMixResponse(responseData, countries, 'GIC', year)
+    );
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
     return {};
@@ -206,10 +247,11 @@ export const fetchFuelMixDataForCodes = async (countries, year, siecCodes) => {
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
-    const response = await axios.get(BASE_URL, { params });
-    console.log('Raw API response for fuel codes:', siecCodes, 'balance:', balanceFlow, response.data);
-    console.log('Available SIEC codes in response:', Object.values(response.data.dimension.siec.category.index));
-    const result = transformFuelMixResponse(response.data, countries, balanceFlow, year);
+    const result = await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformFuelMixResponse(responseData, countries, balanceFlow, year)
+    );
     
     // Filter the result to only include requested fuel keys
     const filteredResult = {};
@@ -223,7 +265,6 @@ export const fetchFuelMixDataForCodes = async (countries, year, siecCodes) => {
       });
     });
     
-    console.log('Filtered fuel mix result for codes:', siecCodes, filteredResult);
     return filteredResult;
   } catch (error) {
     console.error('Fuel Mix API Error for codes:', error);
@@ -242,8 +283,11 @@ export const fetchSectorData = async (countries, year) => {
     params.append('siec', 'TOTAL');
     params.append('unit', 'KTOE');
 
-    const response = await axios.get(BASE_URL, { params });
-    return transformSectorResponse(response.data, countries, year);
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformSectorResponse(responseData, countries, year)
+    );
   } catch (error) {
     console.error('Sector API Error:', error);
     return {};
@@ -362,8 +406,11 @@ export const fetchPopulationData = async (countries, year) => {
     params.append('age', 'TOTAL');
     params.append('sex', 'T');
 
-    const response = await axios.get('https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan', { params });
-    return transformPopulationResponse(response.data, countries, year);
+    return await getCachedEurostatResult(
+      'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan',
+      params,
+      (responseData) => transformPopulationResponse(responseData, countries, year)
+    );
   } catch (error) {
     console.error('Population API Error:', error);
     return {};
@@ -384,8 +431,11 @@ export const fetchGDPData = async (countries, year) => {
     params.append('unit', 'CLV10_MEUR'); // Chain linked volumes (2010), million euro
     params.append('na_item', 'B1GQ'); // Gross domestic product at market prices
 
-    const response = await axios.get('https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp', { params });
-    return transformGDPResponse(response.data, countries, year);
+    return await getCachedEurostatResult(
+      'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp',
+      params,
+      (responseData) => transformGDPResponse(responseData, countries, year)
+    );
   } catch (error) {
     console.error('GDP API Error:', error);
     return {};
