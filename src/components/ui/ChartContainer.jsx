@@ -102,15 +102,18 @@ export function ChartTooltipContent({
   payload,
   label,
   formatter,
+  labelFormatter,
   hideLabel = false,
   indicator = 'dot',
 }) {
   if (!active || !payload?.length) return null
 
+  const displayLabel = labelFormatter ? labelFormatter(label, payload) : label
+
   return (
     <div className="rounded-lg border border-border/80 bg-card/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-      {!hideLabel && label !== undefined && (
-        <div className="mb-2 text-xs font-semibold text-foreground">{label}</div>
+      {!hideLabel && displayLabel !== undefined && (
+        <div className="mb-2 text-xs font-semibold text-foreground">{displayLabel}</div>
       )}
       <div className="space-y-1.5">
         {payload.map((item, idx) => {
@@ -126,6 +129,8 @@ export function ChartTooltipContent({
               <div className="flex items-center gap-2 text-muted-foreground">
                 {indicator === 'line' ? (
                   <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: color }} />
+                ) : indicator === 'dashed' ? (
+                  <span className="h-0.5 w-3 rounded-full border border-dashed border-current" style={{ color }} />
                 ) : (
                   <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: color }} />
                 )}

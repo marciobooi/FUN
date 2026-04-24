@@ -5,7 +5,7 @@ import {
   ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
-} from '../ChartContainer'
+} from '../chart'
 
 /**
  * Reusable Bar Chart Component
