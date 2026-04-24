@@ -392,6 +392,61 @@ function HeroSection({ year }) {
   )
 }
 
+// Parallax letter animation - only animates specific accent letters
+const ParallaxLetters = ({ text, accentIndices = [], className = '' }) => {
+  const containerRef = useRef(null)
+  const [scrollY, setScrollY] = useState(0)
+  const [elementTop, setElementTop] = useState(0)
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setElementTop(containerRef.current.offsetTop)
+    }
+  }, [])
+
+  const letters = text.split('')
+  // Default accent indices: first letter and a middle letter
+  const accents = accentIndices.length > 0 ? accentIndices : [0, Math.floor(letters.length / 2)]
+
+  return (
+    <span ref={containerRef} className={`inline-block ${className}`}>
+      {letters.map((letter, i) => {
+        const isAccent = accents.includes(i)
+        
+        if (!isAccent || letter === ' ') {
+          return (
+            <span key={i} className={letter === ' ' ? 'inline-block w-2' : 'inline-block'}>
+              {letter === ' ' ? '\u00A0' : letter}
+            </span>
+          )
+        }
+        
+        // Parallax offset for accent letters
+        const parallaxSpeed = 0.15 + (i * 0.02)
+        const offset = (scrollY - elementTop + 500) * parallaxSpeed
+        const yMove = Math.sin(offset * 0.01) * 8
+        
+        return (
+          <motion.span
+            key={i}
+            animate={{ y: yMove }}
+            transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+            className="inline-block text-transparent bg-clip-text bg-gradient-to-b from-blue-500 to-indigo-600"
+          >
+            {letter}
+          </motion.span>
+        )
+      })}
+    </span>
+  )
+}
+
 function Section({ children, title, subtitle, index, align = 'left', color = 'blue', decorations = null, story = null }) {
   const isRight = align === 'right';
   
@@ -436,9 +491,17 @@ function Section({ children, title, subtitle, index, align = 'left', color = 'bl
             <div className="relative z-10">
               <span className={`${textColor} font-bold font-mono text-xs tracking-widest mb-2 block`}>// {subtitle}</span>
               <h2 className="text-5xl md:text-6xl font-black text-slate-800 mb-6 uppercase tracking-tighter leading-[0.9]">
-                {title.split(' ').map((word, i) => (
-                  <span key={i} className="block">{word}</span>
-                ))}
+                {title.split(' ').map((word, wordIndex) => {
+                  // Animate first letter and one random vowel in each word
+                  const vowelIndices = [...word].map((c, i) => 'AEIOU'.includes(c.toUpperCase()) ? i : -1).filter(i => i > 0)
+                  const accentIndices = [0, ...(vowelIndices.length > 0 ? [vowelIndices[0]] : [])]
+                  
+                  return (
+                    <span key={wordIndex} className="block">
+                      <ParallaxLetters text={word} accentIndices={accentIndices} />
+                    </span>
+                  )
+                })}
               </h2>
               <div className={`w-12 h-2 bg-gradient-to-r ${colorMap} mb-6 rounded-full`} />
               
