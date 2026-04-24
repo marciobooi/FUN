@@ -8,6 +8,30 @@ export function MetricsGrid({
   data,
   isLoadingFamilyData
 }) {
+  if (isLoadingFamilyData) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {Array.from({ length: Math.max(6, Math.min(displayCategories.length, 10)) }).map((_, index) => (
+          <div
+            key={`skeleton-${index}`}
+            className="relative rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm animate-pulse"
+          >
+            <div className="h-2 w-full rounded-full bg-gray-200 mb-4" />
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-9 w-9 rounded-xl bg-gray-200" />
+              <div className="h-4 w-24 rounded bg-gray-200" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: Math.min(selectedCountries.length || 2, 3) }).map((_, rowIdx) => (
+                <div key={`row-${rowIdx}`} className="h-9 rounded-lg bg-gray-100" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {displayCategories.map(category => (
@@ -15,14 +39,6 @@ export function MetricsGrid({
           key={category.id}
           className={`relative bg-white/90 backdrop-blur-md rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-white/30 overflow-hidden group hover:-translate-y-1 hover:scale-[1.01] ${isLoadingFamilyData ? 'opacity-75' : ''}`}
         >
-          {isLoadingFamilyData && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-2xl">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-6 h-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                <span className="text-xs text-gray-600 font-medium">Loading data...</span>
-              </div>
-            </div>
-          )}
           <div className={`h-2 bg-gradient-to-r ${category.color} shadow-inner`} />
           <div className="p-4">
             <div className="flex items-center gap-3 mb-4">

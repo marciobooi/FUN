@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { fuelFamilies, fuelKeyMap, categories } from '../data/siecCodes'
 import { fetchEnergyData, fetchEnergyDataForYears, fetchPopulationDataForYears, fetchGDPDataForYears, fetchFuelMixDataForCodes } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
@@ -18,6 +18,7 @@ import { ComparisonTools } from '../components/ComparisonTools'
 import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
 import { SecurityOfSupplyIndicators } from '../components/SecurityOfSupplyIndicators'
 import { RenewablesNonRenewables } from '../components/RenewablesNonRenewables'
+import { StrategicTransitionSignals } from '../components/StrategicTransitionSignals'
 import { PracticalFieldMapping } from '../components/PracticalFieldMapping'
 import { SectionCards } from '../components/section-cards'
 import { ChartAreaInteractive } from '../components/chart-area-interactive'
@@ -26,16 +27,106 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
   const [selectedFamily, setSelectedFamily] = useState(null)
   const [familyFuelData, setFamilyFuelData] = useState({})
   const [isLoadingFamilyData, setIsLoadingFamilyData] = useState(false)
+  const [isPreloadingFamilies, setIsPreloadingFamilies] = useState(false)
+  const familyCacheRef = useRef(new Map())
 
   // Energy Intensity Metrics data
   const [intensityData, setIntensityData] = useState({})
   const [isLoadingIntensity, setIsLoadingIntensity] = useState(false)
+
+  const countriesKey = useMemo(() => (
+    selectedCountries.length ? [...selectedCountries].sort().join('|') : ''
+  ), [selectedCountries])
+
+  const buildFamilyCacheKey = (familyId) => `${countriesKey}|${selectedYear}|${familyId}`
+
+  const extractFamilyData = (allData, family) => {
+    const leafNodes = collectLeafNodes(family)
+    const fuelKeys = leafNodes
+      .map((node) => fuelKeyMap[node.id])
+      .filter(Boolean)
+
+    return selectedCountries.reduce((result, country) => {
+      result[country] = {}
+      fuelKeys.forEach((key) => {
+        if (allData[country]?.[key] !== undefined) {
+          result[country][key] = allData[country][key]
+        }
+      })
+      return result
+    }, {})
+  }
+
+  // Preload all families once per country set + year
+  useEffect(() => {
+    const preloadFamilies = async () => {
+      if (!selectedCountries.length) return
+
+      const cacheKey = buildFamilyCacheKey('all')
+      if (familyCacheRef.current.has(cacheKey)) return
+
+      setIsPreloadingFamilies(true)
+      try {
+        const allLeafCodes = Array.from(
+          new Set(
+            fuelFamilies.flatMap((family) => collectLeafNodes(family).map((node) => node.id))
+          )
+        )
+
+        const allData = await fetchFuelMixDataForCodes(selectedCountries, selectedYear, allLeafCodes)
+        familyCacheRef.current.set(cacheKey, allData)
+
+        fuelFamilies.forEach((family) => {
+          const familyKey = buildFamilyCacheKey(family.id)
+          if (!familyCacheRef.current.has(familyKey)) {
+            familyCacheRef.current.set(familyKey, extractFamilyData(allData, family))
+          }
+        })
+
+        if (selectedFamily) {
+          const selectedKey = buildFamilyCacheKey(selectedFamily.id)
+          if (familyCacheRef.current.has(selectedKey)) {
+            setFamilyFuelData(familyCacheRef.current.get(selectedKey))
+            setIsLoadingFamilyData(false)
+          }
+        }
+      } catch (error) {
+        console.error('Error preloading family fuel data:', error)
+      } finally {
+        setIsPreloadingFamilies(false)
+      }
+    }
+
+    preloadFamilies()
+  }, [countriesKey, selectedYear, selectedCountries, selectedFamily])
 
   // Fetch fuel data for selected family
   useEffect(() => {
     const fetchFamilyFuelData = async () => {
       if (!selectedFamily || selectedCountries.length === 0) {
         setFamilyFuelData({})
+        return
+      }
+
+      const cacheKey = buildFamilyCacheKey(selectedFamily.id)
+      if (familyCacheRef.current.has(cacheKey)) {
+        setFamilyFuelData(familyCacheRef.current.get(cacheKey))
+        setIsLoadingFamilyData(false)
+        return
+      }
+
+      const allKey = buildFamilyCacheKey('all')
+      if (familyCacheRef.current.has(allKey)) {
+        const allData = familyCacheRef.current.get(allKey)
+        const extracted = extractFamilyData(allData, selectedFamily)
+        familyCacheRef.current.set(cacheKey, extracted)
+        setFamilyFuelData(extracted)
+        setIsLoadingFamilyData(false)
+        return
+      }
+
+      if (isPreloadingFamilies) {
+        setIsLoadingFamilyData(true)
         return
       }
 
@@ -46,6 +137,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         const siecCodes = leafNodes.map(node => node.id)
         
         const familyData = await fetchFuelMixDataForCodes(selectedCountries, selectedYear, siecCodes)
+        familyCacheRef.current.set(cacheKey, familyData)
         setFamilyFuelData(familyData)
       } catch (error) {
         console.error('Error fetching family fuel data:', error)
@@ -56,7 +148,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
     }
 
     fetchFamilyFuelData()
-  }, [selectedFamily, selectedCountries, selectedYear])
+  }, [selectedFamily, selectedCountries, selectedYear, countriesKey, isPreloadingFamilies])
 
   // Generate energy intensity metrics data
   useEffect(() => {
@@ -302,6 +394,16 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
       {/* Renewables vs Non-Renewables Section */}
       {selectedCountries.length > 0 && (
         <RenewablesNonRenewables
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+          currentData={data}
+          fuelMix={fuelMix}
+        />
+      )}
+
+      {/* Strategic Transition Signals Section */}
+      {selectedCountries.length > 0 && (
+        <StrategicTransitionSignals
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
           currentData={data}

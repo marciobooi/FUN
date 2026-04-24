@@ -502,6 +502,38 @@ export const fetchSectorData = async (countries, year) => {
   }
 };
 
+/**
+ * Fetch specific balance flows for selected SIEC codes across years
+ */
+export const fetchBalanceDataForYears = async (countries, years, balanceCodes, siecCodes) => {
+  if (!countries || countries.length === 0 || !years || years.length === 0) return {};
+  if (!balanceCodes || balanceCodes.length === 0 || !siecCodes || siecCodes.length === 0) return {};
+
+  try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+    const normalizedBalances = [...new Set(balanceCodes)].sort();
+    const normalizedSiec = [...new Set(siecCodes)].sort();
+
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    normalizedCountries.forEach((country) => params.append('geo', country));
+    normalizedYears.forEach((year) => params.append('time', year.toString()));
+    normalizedBalances.forEach((flow) => params.append('nrg_bal', flow));
+    normalizedSiec.forEach((siec) => params.append('siec', siec));
+    params.append('unit', 'KTOE');
+
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformBalanceResponseForYears(responseData, normalizedCountries, normalizedYears, normalizedBalances, normalizedSiec)
+    );
+  } catch (error) {
+    console.error('Balance API Error:', error);
+    return {};
+  }
+};
+
 export const fetchDashboardDataBundle = async (countries, year) => {
   if (!countries || countries.length === 0) {
     return { basicData: {}, fuelData: {}, sectorData: {} };
@@ -627,6 +659,41 @@ function transformSectorResponse(data, countries, year) {
       result[geo][name] = val !== null ? Math.round(val) : 0;
     });
   });
+  return result;
+}
+
+function transformBalanceResponseForYears(data, countries, years, balanceCodes, siecCodes) {
+  const result = {};
+  years.forEach((year) => {
+    result[year] = transformBalanceResponse(data, countries, year, balanceCodes, siecCodes);
+  });
+  return result;
+}
+
+function transformBalanceResponse(data, countries, year, balanceCodes, siecCodes) {
+  const result = {};
+  countries.forEach((country) => {
+    result[country] = {};
+    balanceCodes.forEach((flow) => {
+      result[country][flow] = {};
+      siecCodes.forEach((siec) => {
+        result[country][flow][siec] = null;
+      });
+    });
+  });
+
+  if (!data?.value || !data?.dimension) return result;
+  const getValue = createValueGetter(data);
+
+  countries.forEach((geo) => {
+    balanceCodes.forEach((flow) => {
+      siecCodes.forEach((siec) => {
+        const val = getValue({ freq: 'A', nrg_bal: flow, siec, unit: 'KTOE', geo, time: year.toString() });
+        result[geo][flow][siec] = val !== null && !isNaN(val) ? Math.round(val) : null;
+      });
+    });
+  });
+
   return result;
 }
 

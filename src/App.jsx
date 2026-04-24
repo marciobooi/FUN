@@ -1,7 +1,8 @@
 import { useUrlPersistence } from './hooks/useUrlPersistence'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Toaster } from 'react-hot-toast'
+import { Toaster } from './components/ui/sonner'
+import { TooltipProvider } from './components/ui/tooltip'
 import { Header } from './components/Header'
 import { MainControls } from './components/MainControls'
 import { Footer } from './components/Footer'
@@ -43,87 +44,89 @@ function App() {
   const containerClass = viewMode === 'infographics' ? 'w-full' : 'max-w-7xl mx-auto'
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
-      {/* Header */}
-      <Header viewMode={viewMode} setViewMode={setViewMode} hidden={hideHeader} />
+    <TooltipProvider>
+      <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
+        {/* Header */}
+        <Header viewMode={viewMode} setViewMode={setViewMode} hidden={hideHeader} />
 
-      <main className="pt-28 pb-20">
-        <div className={containerClass}>
-          
-          <AnimatePresence mode="wait">
-            {viewMode === 'dashboard' && (
-              <motion.div
-                key="dashboard"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="mb-12">
-                  {/* Main Controls - Only shown in dashboard */}
-                  <MainControls
-                    selectedCountries={selectedCountries}
-                    setSelectedCountries={setSelectedCountries}
-                    availableCountries={availableCountries}
-                    selectedYear={selectedYear}
-                    setSelectedYear={setSelectedYear}
-                    years={years}
-                    isLoading={isLoading}
-                  />
-                   <EnergyDashboard
+        <main className="pt-28 pb-20">
+          <div className={containerClass}>
+            
+            <AnimatePresence mode="wait">
+              {viewMode === 'dashboard' && (
+                <motion.div
+                  key="dashboard"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="mb-12">
+                    {/* Main Controls - Only shown in dashboard */}
+                    <MainControls
                       selectedCountries={selectedCountries}
+                      setSelectedCountries={setSelectedCountries}
+                      availableCountries={availableCountries}
                       selectedYear={selectedYear}
-                      data={data}
-                      fuelMix={fuelMix}
+                      setSelectedYear={setSelectedYear}
+                      years={years}
                       isLoading={isLoading}
                     />
-                </div>
-              </motion.div>
-            )}
+                     <EnergyDashboard
+                        selectedCountries={selectedCountries}
+                        selectedYear={selectedYear}
+                        data={data}
+                        fuelMix={fuelMix}
+                        isLoading={isLoading}
+                      />
+                  </div>
+                </motion.div>
+              )}
 
-            {viewMode === 'storyteller' && (
-              <motion.div
-                key="storyteller"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <StorytellerMode
-                  data={data}
-                  fuelMix={fuelMix}
-                  sectors={sectors}
-                  selectedCountries={selectedCountries}
-                  selectedYear={selectedYear}
-                />
-              </motion.div>
-            )}
+              {viewMode === 'storyteller' && (
+                <motion.div
+                  key="storyteller"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <StorytellerMode
+                    data={data}
+                    fuelMix={fuelMix}
+                    sectors={sectors}
+                    selectedCountries={selectedCountries}
+                    selectedYear={selectedYear}
+                  />
+                </motion.div>
+              )}
 
-            {viewMode === 'infographics' && (
-              <motion.div
-                key="infographics"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <ParallaxInfographics
-                  data={data}
-                  fuelMix={fuelMix}
-                  sectors={sectors}
-                  selectedCountries={selectedCountries}
-                  selectedYear={selectedYear}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
-      
-      {/* Footer */}
-      <Footer viewMode={viewMode} />
+              {viewMode === 'infographics' && (
+                <motion.div
+                  key="infographics"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <ParallaxInfographics
+                    data={data}
+                    fuelMix={fuelMix}
+                    sectors={sectors}
+                    selectedCountries={selectedCountries}
+                    selectedYear={selectedYear}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </main>
+        
+        {/* Footer */}
+        <Footer viewMode={viewMode} />
 
-      {/* Toast Notifications */}
-      <Toaster />
-    </div>
+        {/* Toast Notifications */}
+        <Toaster />
+      </div>
+    </TooltipProvider>
   )
 }
 
