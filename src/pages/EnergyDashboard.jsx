@@ -17,6 +17,7 @@ import { SelfSufficiencyRatio } from '../components/SelfSufficiencyRatio'
 import { ComparisonTools } from '../components/ComparisonTools'
 import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
 import { SecurityOfSupplyIndicators } from '../components/SecurityOfSupplyIndicators'
+import { RenewablesNonRenewables } from '../components/RenewablesNonRenewables'
 import { PracticalFieldMapping } from '../components/PracticalFieldMapping'
 import { SectionCards } from '../components/section-cards'
 import { ChartAreaInteractive } from '../components/chart-area-interactive'
@@ -291,6 +292,16 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
       {/* Security of Supply Indicators Section */}
       {selectedCountries.length > 0 && (
         <SecurityOfSupplyIndicators
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+          currentData={data}
+          fuelMix={fuelMix}
+        />
+      )}
+
+      {/* Renewables vs Non-Renewables Section */}
+      {selectedCountries.length > 0 && (
+        <RenewablesNonRenewables
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
           currentData={data}
