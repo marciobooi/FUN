@@ -169,7 +169,11 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
       />
 
       <div className="px-4 lg:px-6">
-        <ChartAreaInteractive />
+        <ChartAreaInteractive
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+          data={data}
+        />
       </div>
 
       {/* Energy Metrics Overview Section */}

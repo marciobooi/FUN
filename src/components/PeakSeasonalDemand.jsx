@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 import axios from 'axios'
 import { getCountryName } from '../data/countryNames'
@@ -50,62 +50,98 @@ export function PeakSeasonalDemand({ selectedCountries, selectedYear }) {
   const [monthlyData, setMonthlyData] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const [seasonalStats, setSeasonalStats] = useState({})
+  const monthlyDataCacheRef = useRef(new Map())
+  const selectedCountriesKey = useMemo(
+    () => [...selectedCountries].sort().join(','),
+    [selectedCountries]
+  )
 
   useEffect(() => {
+    const countries = selectedCountriesKey ? selectedCountriesKey.split(',') : []
+
     const fetchMonthlyData = async () => {
-      if (selectedCountries.length === 0) {
+      if (countries.length === 0) {
         setMonthlyData({})
         setSeasonalStats({})
         return
       }
 
       setIsLoading(true)
+      let isActive = true
+
       try {
-        const data = {}
-        const stats = {}
+        const countryResults = await Promise.all(
+          countries.map(async (country) => {
+            const [electricity, gas] = await Promise.all([
+              getCachedMonthlyData(
+                monthlyDataCacheRef.current,
+                MONTHLY_DATASETS.electricity.code,
+                country,
+                selectedYear
+              ),
+              getCachedMonthlyData(
+                monthlyDataCacheRef.current,
+                MONTHLY_DATASETS.gas.code,
+                country,
+                selectedYear
+              ),
+            ])
 
-        for (const country of selectedCountries) {
-          data[country] = {
-            electricity: [],
-            gas: [],
-            solidFuels: []
-          }
+            return {
+              country,
+              datasets: {
+                electricity,
+                gas,
+                solidFuels: [],
+              },
+            }
+          })
+        )
 
-          // Fetch monthly electricity data
-          const elecResponse = await fetchMonthlyDataFromEurostat(
-            MONTHLY_DATASETS.electricity.code,
-            country,
-            selectedYear
-          )
-          data[country].electricity = elecResponse
-
-          // Fetch monthly gas data
-          const gasResponse = await fetchMonthlyDataFromEurostat(
-            MONTHLY_DATASETS.gas.code,
-            country,
-            selectedYear
-          )
-          data[country].gas = gasResponse
-
-          // Calculate seasonal statistics
-          stats[country] = calculateSeasonalStats(
-            data[country].electricity,
-            data[country].gas
-          )
+        if (!isActive) {
+          return
         }
 
-        setMonthlyData(data)
-        setSeasonalStats(stats)
+        const nextMonthlyData = {}
+        const nextSeasonalStats = {}
+
+        countryResults.forEach(({ country, datasets }) => {
+          nextMonthlyData[country] = datasets
+          nextSeasonalStats[country] = calculateSeasonalStats(
+            datasets.electricity,
+            datasets.gas
+          )
+        })
+
+        setMonthlyData(nextMonthlyData)
+        setSeasonalStats(nextSeasonalStats)
       } catch (error) {
         console.error('Error fetching monthly data:', error)
-        throw error
+        if (isActive) {
+          setMonthlyData({})
+          setSeasonalStats({})
+        }
       } finally {
-        setIsLoading(false)
+        if (isActive) {
+          setIsLoading(false)
+        }
+      }
+
+      return () => {
+        isActive = false
       }
     }
 
-    fetchMonthlyData()
-  }, [selectedCountries, selectedYear])
+    const cleanupPromise = fetchMonthlyData()
+
+    return () => {
+      Promise.resolve(cleanupPromise).then((cleanup) => {
+        if (typeof cleanup === 'function') {
+          cleanup()
+        }
+      })
+    }
+  }, [selectedCountriesKey, selectedYear])
 
   // Transform data for multi-country comparison charts
   const electricityChartData = transformChartData(monthlyData, selectedCountries, 'electricity')
@@ -477,6 +513,21 @@ async function fetchMonthlyDataFromEurostat(datasetCode, country, year) {
     return monthlyValues
   } catch (error) {
     console.error(`Failed to fetch ${datasetCode} for ${country}:`, error.message)
+    throw error
+  }
+}
+
+async function getCachedMonthlyData(cache, datasetCode, country, year) {
+  const cacheKey = `${datasetCode}:${country}:${year}`
+
+  if (!cache.has(cacheKey)) {
+    cache.set(cacheKey, fetchMonthlyDataFromEurostat(datasetCode, country, year))
+  }
+
+  try {
+    return await cache.get(cacheKey)
+  } catch (error) {
+    cache.delete(cacheKey)
     throw error
   }
 }

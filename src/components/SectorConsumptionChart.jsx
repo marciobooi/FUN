@@ -82,8 +82,8 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
                 dataKey="value"
                 nameKey="name"
                 outerRadius={70}
-                customLabel={(name, value) => `${name} ${value.toLocaleString()} KTOE`}
                 customTooltip={(value) => [`${value.toLocaleString()} KTOE`, country]}
+                showLegend={false}
                 height={200}
               />
               <p className="text-sm text-gray-500 mt-2">Total: {total.toLocaleString()} KTOE</p>
