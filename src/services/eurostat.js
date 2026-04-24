@@ -4,6 +4,9 @@ const BASE_URL = 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0
 const eurostatResultCache = new Map();
 const populationCoverageCache = new Map();
 const gdpCoverageCache = new Map();
+const energyCoverageCache = new Map();
+const fuelMixCoverageCache = new Map();
+const sectorCoverageCache = new Map();
 
 // Mapping for nrg_bal (Balance flow)
 const FLOW_MAPPING = {
@@ -132,6 +135,52 @@ function buildCoverageKey(country, year) {
   return `${country}:${year}`;
 }
 
+function getCoveredSliceResult(cache, countries, years) {
+  if (!countries.length || !years.length) {
+    return null;
+  }
+
+  const hasCompleteCoverage = countries.every((country) => (
+    years.every((year) => cache.has(buildCoverageKey(country, year)))
+  ));
+
+  if (!hasCompleteCoverage) {
+    return null;
+  }
+
+  if (years.length === 1) {
+    const [year] = years;
+    return countries.reduce((result, country) => {
+      result[country] = cache.get(buildCoverageKey(country, year));
+      return result;
+    }, {});
+  }
+
+  return years.reduce((result, year) => {
+    result[year] = countries.reduce((yearResult, country) => {
+      yearResult[country] = cache.get(buildCoverageKey(country, year));
+      return yearResult;
+    }, {});
+    return result;
+  }, {});
+}
+
+function storeSliceCoverage(cache, dataByYearOrCountry, countries, years) {
+  if (years.length === 1) {
+    const [year] = years;
+    countries.forEach((country) => {
+      cache.set(buildCoverageKey(country, year), dataByYearOrCountry[country] ?? {});
+    });
+    return;
+  }
+
+  years.forEach((year) => {
+    countries.forEach((country) => {
+      cache.set(buildCoverageKey(country, year), dataByYearOrCountry[year]?.[country] ?? {});
+    });
+  });
+}
+
 function getCoveredMetricResult(cache, countries, years) {
   if (!countries.length || !years.length) {
     return null;
@@ -229,21 +278,31 @@ export const fetchEnergyData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const cachedResult = getCoveredSliceResult(energyCoverageCache, normalizedCountries, [year]);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(energyCoverageCache, normalizedCountries, [year]);
     const flows = Object.keys(FLOW_MAPPING);
     
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     flows.forEach(f => params.append('nrg_bal', f));
     params.append('siec', 'TOTAL');
     params.append('unit', 'KTOE');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       BASE_URL,
       params,
-      (responseData) => transformBasicResponse(responseData, countries, year)
+      (responseData) => transformBasicResponse(responseData, missingCountries, year)
     );
+
+    storeSliceCoverage(energyCoverageCache, fetchedResult, missingCountries, [year]);
+    return getCoveredSliceResult(energyCoverageCache, normalizedCountries, [year]) || fetchedResult;
   } catch (error) {
     console.error('Eurostat API Error:', error);
     throw error;
@@ -255,21 +314,31 @@ export const fetchEnergyDataForYears = async (countries, years) => {
 
   try {
     const flows = Object.keys(FLOW_MAPPING);
+    const normalizedCountries = [...new Set(countries)].sort();
     const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+    const cachedResult = getCoveredSliceResult(energyCoverageCache, normalizedCountries, normalizedYears);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(energyCoverageCache, normalizedCountries, normalizedYears);
 
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     normalizedYears.forEach(year => params.append('time', year.toString()));
     flows.forEach(f => params.append('nrg_bal', f));
     params.append('siec', 'TOTAL');
     params.append('unit', 'KTOE');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       BASE_URL,
       params,
-      (responseData) => transformBasicResponseForYears(responseData, countries, normalizedYears)
+      (responseData) => transformBasicResponseForYears(responseData, missingCountries, normalizedYears)
     );
+
+    storeSliceCoverage(energyCoverageCache, fetchedResult, missingCountries, normalizedYears);
+    return getCoveredSliceResult(energyCoverageCache, normalizedCountries, normalizedYears) || fetchedResult;
   } catch (error) {
     console.error('Eurostat API Error:', error);
     throw error;
@@ -283,20 +352,30 @@ export const fetchFuelMixData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const cachedResult = getCoveredSliceResult(fuelMixCoverageCache, normalizedCountries, [year]);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(fuelMixCoverageCache, normalizedCountries, [year]);
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     params.append('nrg_bal', 'GIC'); // Gross Inland Consumption - includes all energy types including nuclear
     // Add all fuel codes for detailed breakdown
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       BASE_URL,
       params,
-      (responseData) => transformFuelMixResponse(responseData, countries, 'GIC', year)
+      (responseData) => transformFuelMixResponse(responseData, missingCountries, 'GIC', year)
     );
+
+    storeSliceCoverage(fuelMixCoverageCache, fetchedResult, missingCountries, [year]);
+    return getCoveredSliceResult(fuelMixCoverageCache, normalizedCountries, [year]) || fetchedResult;
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
     return {};
@@ -307,21 +386,31 @@ export const fetchFuelMixDataForYears = async (countries, years, nrgBal = 'GIC')
   if (!countries || countries.length === 0 || !years || years.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
     const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+    const cachedResult = getCoveredSliceResult(fuelMixCoverageCache, normalizedCountries, normalizedYears);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(fuelMixCoverageCache, normalizedCountries, normalizedYears);
 
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     normalizedYears.forEach(year => params.append('time', year.toString()));
     params.append('nrg_bal', nrgBal);
     Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
     params.append('unit', 'KTOE');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       BASE_URL,
       params,
-      (responseData) => transformFuelMixResponseForYears(responseData, countries, normalizedYears, nrgBal)
+      (responseData) => transformFuelMixResponseForYears(responseData, missingCountries, normalizedYears, nrgBal)
     );
+
+    storeSliceCoverage(fuelMixCoverageCache, fetchedResult, missingCountries, normalizedYears);
+    return getCoveredSliceResult(fuelMixCoverageCache, normalizedCountries, normalizedYears) || fetchedResult;
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
     return {};
@@ -384,19 +473,29 @@ export const fetchSectorData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const cachedResult = getCoveredSliceResult(sectorCoverageCache, normalizedCountries, [year]);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(sectorCoverageCache, normalizedCountries, [year]);
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     Object.keys(SECTOR_CODES).forEach(code => params.append('nrg_bal', code));
     params.append('siec', 'TOTAL');
     params.append('unit', 'KTOE');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       BASE_URL,
       params,
-      (responseData) => transformSectorResponse(responseData, countries, year)
+      (responseData) => transformSectorResponse(responseData, missingCountries, year)
     );
+
+    storeSliceCoverage(sectorCoverageCache, fetchedResult, missingCountries, [year]);
+    return getCoveredSliceResult(sectorCoverageCache, normalizedCountries, [year]) || fetchedResult;
   } catch (error) {
     console.error('Sector API Error:', error);
     return {};
