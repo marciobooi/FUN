@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts'
 import axios from 'axios'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Peak / Seasonal Demand Insights Component
@@ -113,14 +114,29 @@ export function PeakSeasonalDemand({ selectedCountries, selectedYear }) {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-blue-100 rounded-xl">
-            <span className="text-2xl">📈</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-100 rounded-xl">
+              <span className="text-2xl">📈</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Peak & Seasonal Demand Insights</h2>
+              <p className="text-gray-600 text-sm">Monthly energy demand patterns - Winter peaks and summer troughs</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Peak & Seasonal Demand Insights</h2>
-            <p className="text-gray-600 text-sm">Monthly energy demand patterns - Winter peaks and summer troughs</p>
-          </div>
+          <MethodologyModal title="Peak & Seasonal Demand - Methodology">
+            <p>
+              <strong>⚠️ Important:</strong> This component uses <strong>monthly Eurostat datasets</strong>, not the annual nrg_bal_c:
+            </p>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li><strong>nrg_cb_em:</strong> Monthly electricity demand (GWh) - Shows daily/seasonal load variations</li>
+              <li><strong>nrg_cb_gasm:</strong> Monthly gas demand (TJ) - Highly seasonal due to heating, especially winter peaks</li>
+              <li><strong>nrg_cb_sffm:</strong> Monthly solid fuels (coal, lignite) - Heating and power generation seasonal patterns</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> This component fetches real monthly data directly from Eurostat APIs. All displayed values are actual energy demand measurements.
+            </p>
+          </MethodologyModal>
         </div>
 
         {isLoading && (
@@ -373,21 +389,6 @@ export function PeakSeasonalDemand({ selectedCountries, selectedYear }) {
               </div>
             </div>
 
-            {/* Methodology & Data Sources */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-              <h4 className="font-semibold text-blue-800 mb-2">📋 Data Sources & Methodology</h4>
-              <p className="text-sm text-blue-700 mb-2">
-                <strong>⚠️ Important:</strong> This component uses <strong>monthly Eurostat datasets</strong>, not the annual nrg_bal_c:
-              </p>
-              <ul className="text-sm text-blue-700 space-y-1 ml-4 list-disc">
-                <li><strong>nrg_cb_em:</strong> Monthly electricity demand (GWh) - Shows daily/seasonal load variations</li>
-                <li><strong>nrg_cb_gasm:</strong> Monthly gas demand (TJ) - Highly seasonal due to heating, especially winter peaks</li>
-                <li><strong>nrg_cb_sffm:</strong> Monthly solid fuels (coal, lignite) - Heating and power generation seasonal patterns</li>
-              </ul>
-              <p className="text-xs text-blue-600 mt-3">
-                <strong>Note:</strong> This component fetches real monthly data directly from Eurostat APIs. All displayed values are actual energy demand measurements.
-              </p>
-            </div>
           </>
         )}
       </div>

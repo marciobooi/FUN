@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Practical Field Mapping Component
@@ -326,14 +327,47 @@ export function PracticalFieldMapping() {
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-3 bg-indigo-100 rounded-xl">
-            <span className="text-2xl">📚</span>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-100 rounded-xl">
+              <span className="text-2xl">📚</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Practical Field Mapping (At-a-Glance)</h2>
+              <p className="text-gray-600 text-sm">Reference guide for understanding Eurostat energy data fields, units, and practical usage</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Practical Field Mapping (At-a-Glance)</h2>
-            <p className="text-gray-600 text-sm">Reference guide for understanding Eurostat energy data fields, units, and practical usage</p>
-          </div>
+          <MethodologyModal title="Practical Field Mapping - Sources">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+              <div>
+                <p className="font-semibold text-gray-700">European Commission</p>
+                <p className="text-gray-600 text-xs">ec.europa.eu - Official energy policy and statistics</p>
+              </div>
+              <div>
+                <p className="font-semibold text-gray-700">Eurostat Field Guide</p>
+                <p className="text-gray-600 text-xs">fgeerolf.com - Community-curated Eurostat documentation</p>
+              </div>
+            </div>
+            <h4 className="font-semibold text-blue-900 mb-3">🎯 Quick Reference: Common Conversions</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-blue-700 font-semibold">KTOE to GWh</p>
+                <p className="text-blue-900 font-mono">× 11.63</p>
+              </div>
+              <div>
+                <p className="text-blue-700 font-semibold">KTOE to PJ</p>
+                <p className="text-blue-900 font-mono">× 41.868</p>
+              </div>
+              <div>
+                <p className="text-blue-700 font-semibold">GWh to MWh</p>
+                <p className="text-blue-900 font-mono">× 1000</p>
+              </div>
+              <div>
+                <p className="text-blue-700 font-semibold">TJ to GWh</p>
+                <p className="text-blue-900 font-mono">÷ 3.6</p>
+              </div>
+            </div>
+          </MethodologyModal>
         </div>
 
         {/* Field Mapping Categories */}
@@ -374,43 +408,6 @@ export function PracticalFieldMapping() {
           </div>
         </div>
 
-        {/* Data Sources */}
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-          <h4 className="font-semibold text-gray-800 mb-2">📋 Sources</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-semibold text-gray-700">European Commission</p>
-              <p className="text-gray-600 text-xs">ec.europa.eu - Official energy policy and statistics</p>
-            </div>
-            <div>
-              <p className="font-semibold text-gray-700">Eurostat Field Guide</p>
-              <p className="text-gray-600 text-xs">fgeerolf.com - Community-curated Eurostat documentation</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Reference */}
-        <div className="mt-6 bg-blue-50 rounded-xl p-4 border border-blue-200">
-          <h4 className="font-semibold text-blue-900 mb-3">🎯 Quick Reference: Common Conversions</h4>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-blue-700 font-semibold">KTOE to GWh</p>
-              <p className="text-blue-900 font-mono">× 11.63</p>
-            </div>
-            <div>
-              <p className="text-blue-700 font-semibold">GWh to KTOE</p>
-              <p className="text-blue-900 font-mono">÷ 11.63</p>
-            </div>
-            <div>
-              <p className="text-blue-700 font-semibold">Efficiency Check</p>
-              <p className="text-blue-900 font-mono">Output / Input</p>
-            </div>
-            <div>
-              <p className="text-blue-700 font-semibold">Import Reliance</p>
-              <p className="text-blue-900 font-mono">(IMP - EXP) / GIC</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

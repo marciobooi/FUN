@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react'
  * positioned near the trigger info icon button.
  */
 
-export function MethodologyModal({ title, children, triggerButton = true }) {
+export function MethodologyModal({ title, children, triggerButton = true, renderTrigger }) {
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef(null)
   const modalRef = useRef(null)
@@ -27,17 +27,21 @@ export function MethodologyModal({ title, children, triggerButton = true }) {
 
   return (
     <>
-      {/* Info Icon Button */}
-      {triggerButton && (
-        <button
-          ref={buttonRef}
-          onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
-          title="View methodology and data sources"
-          aria-label="View methodology"
-        >
-          <span className="text-sm font-semibold">ℹ</span>
-        </button>
+      {/* Info Icon Button: default or custom-rendered trigger */}
+      {renderTrigger ? (
+        renderTrigger({ ref: buttonRef, onClick: () => setIsOpen(!isOpen) })
+      ) : (
+        triggerButton && (
+          <button
+            ref={buttonRef}
+            onClick={() => setIsOpen(!isOpen)}
+            className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors"
+            title="View methodology and data sources"
+            aria-label="View methodology"
+          >
+            <span className="text-sm font-semibold">ℹ</span>
+          </button>
+        )
       )}
 
       {/* Background Blur */}

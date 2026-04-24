@@ -4,6 +4,7 @@ import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { LineChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 export function EnergyDependencyIndicator({ selectedCountries, selectedYear, data }) {
   const [dependencyData, setDependencyData] = useState({})
@@ -64,14 +65,23 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
   return (
     <div className="mt-8 space-y-6">
       <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-8">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-red-100 rounded-xl">
-            <span className="text-2xl">📊</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-red-100 rounded-xl">
+              <span className="text-2xl">📊</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Energy Dependency Indicator</h2>
+              <p className="text-gray-600">External energy reliance: (Imports - Exports) ÷ Gross Inland Consumption</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Energy Dependency Indicator</h2>
-            <p className="text-gray-600">External energy reliance: (Imports - Exports) ÷ Gross Inland Consumption</p>
-          </div>
+          <MethodologyModal title="Energy Dependency Indicator - Methodology">
+            <p>
+              Energy dependency measures how reliant a country is on imported energy.
+              Calculated as (Imports - Exports) ÷ Gross Inland Consumption × 100.
+              Higher percentages indicate greater external energy dependence and potential vulnerability to supply disruptions.
+            </p>
+          </MethodologyModal>
         </div>
 
         {/* Current Year KPI Cards */}
@@ -199,16 +209,6 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
               )
             })()}
           </div>
-        </div>
-
-        {/* Methodology Note */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-2">📋 Methodology</h4>
-          <p className="text-sm text-blue-700">
-            Energy dependency measures how reliant a country is on imported energy. 
-            Calculated as (Imports - Exports) ÷ Gross Inland Consumption × 100. 
-            Higher percentages indicate greater external energy dependence and potential vulnerability to supply disruptions.
-          </p>
         </div>
       </div>
     </div>

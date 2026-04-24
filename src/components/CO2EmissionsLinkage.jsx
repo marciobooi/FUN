@@ -3,6 +3,7 @@ import { fetchEnergyData } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { ComposedChartComponent, ScatterChartComponent, BarChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }) {
   const [emissionsData, setEmissionsData] = useState({})
@@ -100,12 +101,24 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">CO₂ Emissions Linkage</h2>
-          {isLoadingEmissions && (
-            <div className="flex items-center space-x-2 text-blue-600">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm">Loading emissions data...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {isLoadingEmissions && (
+              <div className="flex items-center space-x-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm">Loading emissions data...</span>
+              </div>
+            )}
+            <MethodologyModal title="CO₂ Emissions Linkage - Methodology">
+              <p>
+                CO₂ emissions are calculated using actual energy consumption data from Eurostat and real fuel mix composition.
+                Emissions intensity is derived from fossil fuel share and standard EU emission factors.
+              </p>
+              <p>
+                <strong>Data Source:</strong> Eurostat nrg_bal_c dataset for energy consumption and fuel mix composition.
+                Fossil fuel shares are calculated from actual API data, and emissions are correlated with real consumption patterns.
+              </p>
+            </MethodologyModal>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -264,18 +277,6 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
           </div>
         </div>
 
-        {/* Methodology Note */}
-        <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
-          <h4 className="font-semibold text-red-800 mb-2">📋 Methodology & Data Sources</h4>
-          <p className="text-sm text-red-700 mb-2">
-            CO₂ emissions are calculated using actual energy consumption data from Eurostat and real fuel mix composition.
-            Emissions intensity is derived from fossil fuel share and standard EU emission factors.
-          </p>
-          <p className="text-xs text-red-600">
-            <strong>Data Source:</strong> Eurostat nrg_bal_c dataset for energy consumption and fuel mix composition.
-            Fossil fuel shares are calculated from actual API data, and emissions are correlated with real consumption patterns.
-          </p>
-        </div>
       </div>
     </div>
   )

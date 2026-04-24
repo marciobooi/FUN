@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ScatterChart, Scatter } from 'recharts'
 import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Comparison Tools Component
@@ -252,14 +253,31 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-purple-100 rounded-xl">
-            <span className="text-2xl">🔄</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <span className="text-2xl">🔄</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Comparison Tools</h2>
+              <p className="text-gray-600 text-sm">Interactive exploration across countries and years</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Comparison Tools</h2>
-            <p className="text-gray-600 text-sm">Interactive exploration across countries and years</p>
-          </div>
+          <MethodologyModal title="Comparison Tools - Methodology">
+            <p>
+              <strong>Multi-dimensional energy comparison across countries and years</strong>
+            </p>
+            <ul className="space-y-1 ml-4 list-disc mb-3">
+              <li><strong>Energy Balance:</strong> Eurostat nrg_bal_c - Gross Inland Consumption (GIC), Primary Production, Imports, Exports (KTOE)</li>
+              <li><strong>Population Data:</strong> Eurostat demo_pjan - Total population (thousands) for per capita normalization</li>
+              <li><strong>GDP Data:</strong> Eurostat namq_10_gdp - Gross Domestic Product in million EUR (2010 chain-linked prices) for per GDP normalization</li>
+              <li><strong>Normalization Methods:</strong> Absolute (KTOE) | Per Capita (KTOE per million inhabitants) | Per GDP (KTOE per billion EUR)</li>
+              <li><strong>Year-over-Year Analysis:</strong> Baseline year vs current year comparison showing percentage and absolute changes</li>
+            </ul>
+            <p>
+              <strong>Data Source:</strong> All data fetched directly from Eurostat APIs. Data availability varies by country and year (typically 2005-present).
+            </p>
+          </MethodologyModal>
         </div>
 
 
@@ -523,23 +541,6 @@ export function ComparisonTools({ selectedCountries, selectedYear }) {
             </p>
           </div>
         )}
-                {/* Data Sources & Methodology */}
-        <div className="mt-6 p-4 bg-purple-50 rounded-xl border border-purple-200">
-          <h4 className="font-semibold text-purple-800 mb-2">📋 Data Sources & Methodology</h4>
-          <p className="text-sm text-purple-700 mb-3">
-            <strong>Multi-dimensional energy comparison across countries and years</strong>
-          </p>
-          <ul className="text-sm text-purple-700 space-y-1 ml-4 list-disc mb-3">
-            <li><strong>Energy Balance:</strong> Eurostat nrg_bal_c - Gross Inland Consumption (GIC), Primary Production, Imports, Exports (KTOE)</li>
-            <li><strong>Population Data:</strong> Eurostat demo_pjan - Total population (thousands) for per capita normalization</li>
-            <li><strong>GDP Data:</strong> Eurostat namq_10_gdp - Gross Domestic Product in million EUR (2010 chain-linked prices) for per GDP normalization</li>
-            <li><strong>Normalization Methods:</strong> Absolute (KTOE) | Per Capita (KTOE per million inhabitants) | Per GDP (KTOE per billion EUR)</li>
-            <li><strong>Year-over-Year Analysis:</strong> Baseline year vs current year comparison showing percentage and absolute changes</li>
-          </ul>
-          <p className="text-xs text-purple-600">
-            <strong>Data Source:</strong> All data fetched directly from Eurostat APIs. Data availability varies by country and year (typically 2005-present).
-          </p>
-        </div>
       </div>
     </div>
   )

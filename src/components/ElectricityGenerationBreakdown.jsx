@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Treemap } from 'recharts'
 import { fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Electricity Generation Breakdown Component
@@ -192,14 +193,31 @@ export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-yellow-100 rounded-xl">
-            <span className="text-2xl">⚡</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-yellow-100 rounded-xl">
+              <span className="text-2xl">⚡</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Electricity Generation Breakdown</h2>
+              <p className="text-gray-600 text-sm">Electricity generation by technology (GWh and %)</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Electricity Generation Breakdown</h2>
-            <p className="text-gray-600 text-sm">Generation by technology in GWh with renewable and fossil shares</p>
-          </div>
+          <MethodologyModal title="Electricity Generation Breakdown - Methodology">
+            <p>
+              <strong>Electricity generation breakdown by technology</strong>
+            </p>
+            <ul className="space-y-1 ml-4 list-disc mb-3">
+              <li><strong>Data Source:</strong> Eurostat nrg_bal_c (Annual energy balance) - Electricity (E7000) broken down by energy sources</li>
+              <li><strong>Technologies Covered:</strong> Coal, Natural Gas, Oil, Nuclear, Hydro, Wind, Solar, Bioenergy, Geothermal</li>
+              <li><strong>Unit Conversion:</strong> KTOE to GWh (1 KTOE = 11.63 GWh for electricity) - standard conversion factor</li>
+              <li><strong>Categories:</strong> Fossil (coal, gas, oil), Nuclear, Renewables (hydro, wind, solar, bio, geo)</li>
+              <li><strong>Time Period:</strong> 10-year historical trend (2005-present, varies by country and data availability)</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> Electricity generation data aligns with EU climate and renewable energy directives. Values represent primary energy input equivalent.
+            </p>
+          </MethodologyModal>
         </div>
 
         {isLoading && (
@@ -363,23 +381,6 @@ export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear
               </div>
             )}
 
-            {/* Data Sources & Methodology */}
-            <div className="mt-6 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <h4 className="font-semibold text-yellow-800 mb-2">📋 Data Sources & Methodology</h4>
-              <p className="text-sm text-yellow-700 mb-3">
-                <strong>Electricity generation breakdown by technology</strong>
-              </p>
-              <ul className="text-sm text-yellow-700 space-y-1 ml-4 list-disc mb-3">
-                <li><strong>Data Source:</strong> Eurostat nrg_bal_c (Annual energy balance) - Electricity (E7000) broken down by energy sources</li>
-                <li><strong>Technologies Covered:</strong> Coal, Natural Gas, Oil, Nuclear, Hydro, Wind, Solar, Bioenergy, Geothermal</li>
-                <li><strong>Unit Conversion:</strong> KTOE to GWh (1 KTOE = 11.63 GWh for electricity) - standard conversion factor</li>
-                <li><strong>Categories:</strong> Fossil (coal, gas, oil), Nuclear, Renewables (hydro, wind, solar, bio, geo)</li>
-                <li><strong>Time Period:</strong> 10-year historical trend (2005-present, varies by country and data availability)</li>
-              </ul>
-              <p className="text-xs text-yellow-600">
-                <strong>Note:</strong> Electricity generation data aligns with EU climate and renewable energy directives. Values represent primary energy input equivalent.
-              </p>
-            </div>
           </>
         )}
       </div>

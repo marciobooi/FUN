@@ -1,6 +1,7 @@
 import React from 'react'
 import { LineChartComponent, ScatterChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 export function EnergyIntensityMetrics({ selectedCountries, selectedYear, intensityData, isLoadingIntensity }) {
   if (selectedCountries.length === 0) {
@@ -12,12 +13,25 @@ export function EnergyIntensityMetrics({ selectedCountries, selectedYear, intens
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Energy Intensity Metrics</h2>
-          {isLoadingIntensity && (
-            <div className="flex items-center space-x-2 text-blue-600">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm">Loading intensity data...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {isLoadingIntensity && (
+              <div className="flex items-center space-x-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm">Loading intensity data...</span>
+              </div>
+            )}
+            <MethodologyModal title="Energy Intensity Metrics - Methodology">
+              <p>
+                Energy intensity metrics normalize consumption by socioeconomic factors.
+                Per capita measures show energy use efficiency, while GDP intensity reveals economic decoupling from energy.
+              </p>
+              <p>
+                <strong>Data Sources:</strong> GIC from Eurostat nrg_bal_c (GIC, TOTAL, KTOE).
+                Population from demo_pjan, GDP from nama_10_gdp. Indexed trends use 1990 baseline.
+                Bubble size represents population; tooltips show raw GIC values.
+              </p>
+            </MethodologyModal>
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -143,20 +157,6 @@ export function EnergyIntensityMetrics({ selectedCountries, selectedYear, intens
               )
             })()}
           </div>
-        </div>
-
-        {/* Methodology Note */}
-        <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
-          <h4 className="font-semibold text-green-800 mb-2">📋 Methodology & Data Sources</h4>
-          <p className="text-sm text-green-700 mb-2">
-            Energy intensity metrics normalize consumption by socioeconomic factors.
-            Per capita measures show energy use efficiency, while GDP intensity reveals economic decoupling from energy.
-          </p>
-          <p className="text-xs text-green-600">
-            <strong>Data Sources:</strong> GIC from Eurostat nrg_bal_c (GIC, TOTAL, KTOE).
-            Population from demo_pjan, GDP from nama_10_gdp. Indexed trends use 1990 baseline.
-            Bubble size represents population; tooltips show raw GIC values.
-          </p>
         </div>
       </div>
     </div>

@@ -243,17 +243,9 @@ export function EnergyMetricsOverview({
   const displayCategories = selectedFamily ? getFuelCategories(selectedFamily) : categories;
 
   return (
-    <>
+    <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
       {/* Fuel Family Buttons */}
       <FuelFamilySelector selectedFamily={selectedFamily} setSelectedFamily={setSelectedFamily} />
-
-      {/* Metrics Grid */}
-      <MetricsGrid
-        displayCategories={displayCategories}
-        selectedCountries={selectedCountries}
-        data={data}
-        isLoadingFamilyData={isLoadingFamilyData}
-      />
 
       {/* Methodology Modal */}
       <div className="mt-6 flex justify-center">
@@ -288,6 +280,14 @@ export function EnergyMetricsOverview({
           </p>
         </MethodologyModal>
       </div>
-    </>
+
+      {/* Metrics Grid */}
+      <MetricsGrid
+        displayCategories={displayCategories}
+        selectedCountries={selectedCountries}
+        data={data}
+        isLoadingFamilyData={isLoadingFamilyData}
+      />
+    </section>
   )
 }

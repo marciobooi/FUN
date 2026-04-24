@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import { fetchEnergyData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Self-Sufficiency Ratio Component
@@ -128,14 +129,29 @@ export function SelfSufficiencyRatio({ selectedCountries, selectedYear }) {
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-green-100 rounded-xl">
-            <span className="text-2xl">🛡️</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <span className="text-2xl">🛡️</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Self-Sufficiency Ratio</h2>
+              <p className="text-gray-600 text-sm">Energy independence metric - Primary production ÷ Gross Inland Consumption</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Self-Sufficiency Ratio</h2>
-            <p className="text-gray-600 text-sm">Energy independence metric - Primary production ÷ Gross Inland Consumption</p>
-          </div>
+          <MethodologyModal title="Self-Sufficiency Ratio - Methodology">
+            <p>
+              <strong>Self-Sufficiency Ratio = Primary Production ÷ Gross Inland Consumption (GIC)</strong>
+            </p>
+            <ul className="space-y-1 ml-4 list-disc mb-3">
+              <li><strong>Production:</strong> Primary production (nrg_bal = PROD or PRIM_PROD), all fuels (TOTAL), unit = KTOE</li>
+              <li><strong>GIC:</strong> Gross Inland Consumption (nrg_bal = GIC), all fuels (TOTAL), unit = KTOE</li>
+              <li><strong>Interpretation:</strong> Values {'>'} 100% indicate net energy exporters; {'<'} 100% indicate import dependence</li>
+            </ul>
+            <p>
+              <strong>Data Source:</strong> Eurostat nrg_bal_c (annual energy balance - comprehensive version)
+            </p>
+          </MethodologyModal>
         </div>
 
         {isLoading && (
@@ -312,21 +328,6 @@ export function SelfSufficiencyRatio({ selectedCountries, selectedYear }) {
               </div>
             )}
 
-            {/* Methodology & Data Sources */}
-            <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-200">
-              <h4 className="font-semibold text-green-800 mb-2">📋 Methodology</h4>
-              <p className="text-sm text-green-700 mb-3">
-                <strong>Self-Sufficiency Ratio = Primary Production ÷ Gross Inland Consumption (GIC)</strong>
-              </p>
-              <ul className="text-sm text-green-700 space-y-1 ml-4 list-disc mb-3">
-                <li><strong>Production:</strong> Primary production (nrg_bal = PROD or PRIM_PROD), all fuels (TOTAL), unit = KTOE</li>
-                <li><strong>GIC:</strong> Gross Inland Consumption (nrg_bal = GIC), all fuels (TOTAL), unit = KTOE</li>
-                <li><strong>Interpretation:</strong> Values {'>'} 100% indicate net energy exporters; {'<'} 100% indicate import dependence</li>
-              </ul>
-              <p className="text-xs text-green-600">
-                <strong>Data Source:</strong> Eurostat nrg_bal_c (annual energy balance - comprehensive version)
-              </p>
-            </div>
           </>
         )}
       </div>

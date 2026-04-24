@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 import { fetchEnergyData, fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Transformation & Conversion Efficiency Component
@@ -140,14 +141,32 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-100 rounded-xl">
-            <span className="text-2xl">⚙️</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-amber-100 rounded-xl">
+              <span className="text-2xl">⚙️</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Transformation & Conversion Efficiency</h2>
+              <p className="text-gray-600 text-sm">Energy losses in fuel conversion to electricity, heat, and refined products</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Transformation & Conversion Efficiency</h2>
-            <p className="text-gray-600 text-sm">Energy losses in fuel conversion to electricity, heat, and refined products</p>
-          </div>
+          <MethodologyModal title="Transformation & Conversion Efficiency - Methodology">
+            <p>
+              <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy Balance) dataset
+            </p>
+            <p>
+              <strong>KPIs Calculated:</strong>
+            </p>
+            <ul className="space-y-1 ml-4 list-disc">
+              <li><strong>Power & Heat Efficiency:</strong> (Electricity Output + Heat Output) ÷ Transformation Input × 100</li>
+              <li><strong>Refinery Yield:</strong> Petroleum Product Outputs ÷ Refinery Input × 100</li>
+              <li><strong>System Losses:</strong> Total Input - (Electricity + Heat + Refined Products)</li>
+            </ul>
+            <p>
+              <strong>Unit conversion reference:</strong> 1 ktoe = 11.63 GWh. Data typically available for recent years only.
+            </p>
+          </MethodologyModal>
         </div>
 
         {/* KPI Cards */}
@@ -357,25 +376,6 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
               </table>
             </div>
           </div>
-        </div>
-
-        {/* Methodology Note */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <h4 className="font-semibold text-blue-800 mb-2">📋 Methodology & Data Sources</h4>
-          <p className="text-sm text-blue-700 mb-2">
-            <strong>Data Source:</strong> Eurostat nrg_bal_c (Energy Balance) dataset
-          </p>
-          <p className="text-sm text-blue-700 mb-2">
-            <strong>KPIs Calculated:</strong>
-          </p>
-          <ul className="text-sm text-blue-700 space-y-1 ml-4 list-disc">
-            <li><strong>Power & Heat Efficiency:</strong> (Electricity Output + Heat Output) ÷ Transformation Input × 100</li>
-            <li><strong>Refinery Yield:</strong> Petroleum Product Outputs ÷ Refinery Input × 100</li>
-            <li><strong>System Losses:</strong> Total Input - (Electricity + Heat + Refined Products)</li>
-          </ul>
-          <p className="text-xs text-blue-600 mt-2">
-            Unit conversion reference: 1 ktoe = 11.63 GWh. Data typically available for recent years only.
-          </p>
         </div>
       </div>
     </div>

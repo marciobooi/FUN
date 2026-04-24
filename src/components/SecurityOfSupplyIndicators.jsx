@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Scatter } from 'recharts'
 import { fetchEnergyData, fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
+import { MethodologyModal } from './ui/MethodologyModal'
 
 /**
  * Security of Supply Indicators Component
@@ -213,14 +214,32 @@ export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear }) 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
       <div className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-red-100 rounded-xl">
-            <span className="text-2xl">🛡️</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-red-100 rounded-xl">
+              <span className="text-2xl">🛡️</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Security of Supply Indicators</h2>
+              <p className="text-gray-600 text-sm">Energy independence, import reliance, and fuel mix diversification</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Security of Supply Indicators</h2>
-            <p className="text-gray-600 text-sm">Energy independence, import reliance, and fuel mix diversification</p>
-          </div>
+          <MethodologyModal title="Security of Supply Indicators - Methodology">
+            <p>
+              <strong>Energy security and supply diversification analysis</strong>
+            </p>
+            <ul className="space-y-1 ml-4 list-disc mb-3">
+              <li><strong>Data Source:</strong> Eurostat nrg_bal_c - Energy balance (imports, exports, GIC) by fuel type</li>
+              <li><strong>Import Reliance Formula:</strong> (Imports - Exports) / GIC × 100% for each fuel group</li>
+              <li><strong>Diversity Index (HHI):</strong> Σ(fuel_share_i)² where lower = more diverse, higher = more concentrated</li>
+              <li><strong>Diversity Score:</strong> (1 - HHI) × 100, ranges 0-100 (higher = better diversification)</li>
+              <li><strong>Fuel Groups:</strong> Coal, Natural Gas, Oil, Nuclear, Renewables (main aggregates)</li>
+              <li><strong>Assessment Levels:</strong> Highly Diversified (80+) | Well Diversified (60-79) | Moderately (40-59) | Concentrated (&lt;40)</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> Country-of-origin import concentration not included (requires external trade partner data). Current analysis focuses on fuel-type diversification within GIC.
+            </p>
+          </MethodologyModal>
         </div>
 
         {isLoading && (
@@ -422,24 +441,6 @@ export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear }) 
               </div>
             )}
 
-            {/* Data Sources & Methodology */}
-            <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
-              <h4 className="font-semibold text-red-800 mb-2">📋 Data Sources & Methodology</h4>
-              <p className="text-sm text-red-700 mb-3">
-                <strong>Energy security and supply diversification analysis</strong>
-              </p>
-              <ul className="text-sm text-red-700 space-y-1 ml-4 list-disc mb-3">
-                <li><strong>Data Source:</strong> Eurostat nrg_bal_c - Energy balance (imports, exports, GIC) by fuel type</li>
-                <li><strong>Import Reliance Formula:</strong> (Imports - Exports) / GIC × 100% for each fuel group</li>
-                <li><strong>Diversity Index (HHI):</strong> Σ(fuel_share_i)² where lower = more diverse, higher = more concentrated</li>
-                <li><strong>Diversity Score:</strong> (1 - HHI) × 100, ranges 0-100 (higher = better diversification)</li>
-                <li><strong>Fuel Groups:</strong> Coal, Natural Gas, Oil, Nuclear, Renewables (main aggregates)</li>
-                <li><strong>Assessment Levels:</strong> Highly Diversified (80+) | Well Diversified (60-79) | Moderately (40-59) | Concentrated (&lt;40)</li>
-              </ul>
-              <p className="text-xs text-red-600">
-                <strong>Note:</strong> Country-of-origin import concentration not included (requires external trade partner data). Current analysis focuses on fuel-type diversification within GIC.
-              </p>
-            </div>
           </>
         )}
       </div>
