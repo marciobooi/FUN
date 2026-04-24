@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { ChartContainer } from './ui/ChartContainer'
 import { BarChartComponent } from '../components/ui/charts'
 import { MethodologyModal } from './ui/MethodologyModal'
 
@@ -85,19 +84,17 @@ export function FuelMixChart({ data, selectedCountries }) {
         </MethodologyModal>
       </div>
       
-      <ChartContainer style={{ height: '400px' }}>
-        <BarChartComponent
-          data={chartData}
-          bars={barConfig}
-          xAxisKey="country"
-          layout="horizontal"
-          height={400}
-          customTooltip={(value, name) => [
-            `${value.toLocaleString()} KTOE`,
-            FUEL_LABELS[name] || name
-          ]}
-        />
-      </ChartContainer>
+      <BarChartComponent
+        data={chartData}
+        bars={barConfig}
+        xAxisKey="country"
+        layout="horizontal"
+        height={400}
+        customTooltip={(value, name) => [
+          `${value.toLocaleString()} KTOE`,
+          FUEL_LABELS[name] || name
+        ]}
+      />
     </motion.div>
   )
 }

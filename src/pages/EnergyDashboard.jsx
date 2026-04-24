@@ -18,6 +18,8 @@ import { ComparisonTools } from '../components/ComparisonTools'
 import { ElectricityGenerationBreakdown } from '../components/ElectricityGenerationBreakdown'
 import { SecurityOfSupplyIndicators } from '../components/SecurityOfSupplyIndicators'
 import { PracticalFieldMapping } from '../components/PracticalFieldMapping'
+import { SectionCards } from '../components/section-cards'
+import { ChartAreaInteractive } from '../components/chart-area-interactive'
 
 export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix, isLoading }) {
   const [selectedFamily, setSelectedFamily] = useState(null)
@@ -158,6 +160,17 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         selectedCountries={selectedCountries}
         selectedYear={selectedYear}
       />
+
+      {/* Dashboard-01 style overview (no sidebar) */}
+      <SectionCards
+        selectedCountries={selectedCountries}
+        selectedYear={selectedYear}
+        data={data}
+      />
+
+      <div className="px-4 lg:px-6">
+        <ChartAreaInteractive />
+      </div>
 
       {/* Energy Metrics Overview Section */}
       <EnergyMetricsOverview

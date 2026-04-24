@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { ChartContainer } from './ui/ChartContainer'
 import { PieChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
@@ -78,17 +77,15 @@ export function SectorConsumptionChart({ data, selectedCountries }) {
           return (
             <div key={country} className="text-center">
               <h4 className="font-bold text-gray-700 mb-4">{getCountryName(country)}</h4>
-              <ChartContainer style={{ height: '200px' }}>
-                <PieChartComponent
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={70}
-                  customLabel={(name, value) => `${name} ${value.toLocaleString()} KTOE`}
-                  customTooltip={(value) => [`${value.toLocaleString()} KTOE`, country]}
-                  height={200}
-                />
-              </ChartContainer>
+              <PieChartComponent
+                data={pieData}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={70}
+                customLabel={(name, value) => `${name} ${value.toLocaleString()} KTOE`}
+                customTooltip={(value) => [`${value.toLocaleString()} KTOE`, country]}
+                height={200}
+              />
               <p className="text-sm text-gray-500 mt-2">Total: {total.toLocaleString()} KTOE</p>
             </div>
           )
