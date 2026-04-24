@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { fetchEnergyData } from '../services/eurostat'
+import { fetchEnergyDataForYears } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { LineChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
@@ -25,13 +25,7 @@ export function EnergyDependencyIndicator({ selectedCountries, selectedYear, dat
         // Use recent years for trend analysis
         const years = allYears.filter(y => y <= selectedYear).slice(0, 5).reverse()
         
-        const historicalData = {}
-
-        for (const year of years) {
-          const yearData = await fetchEnergyData(selectedCountries, year)
-          historicalData[year] = yearData
-        }
-
+        const historicalData = await fetchEnergyDataForYears(selectedCountries, years)
         setDependencyData(historicalData)
       } catch (error) {
         console.error('Error fetching dependency data:', error)

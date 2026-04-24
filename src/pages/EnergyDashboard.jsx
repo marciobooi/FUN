@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { fuelFamilies, fuelKeyMap, categories } from '../data/siecCodes'
-import { fetchEnergyData, fetchPopulationData, fetchGDPData, fetchFuelMixDataForCodes } from '../services/eurostat'
+import { fetchEnergyData, fetchEnergyDataForYears, fetchPopulationDataForYears, fetchGDPDataForYears, fetchFuelMixDataForCodes } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ScatterChart, Scatter, ComposedChart, Legend } from 'recharts'
 import { EnergyMetricsOverview } from '../components/EnergyMetricsOverview'
@@ -74,14 +74,18 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         // Use all available years for historical trend analysis
         const years = allYears
         const intensityData = {}
+        const [energyDataByYear, populationDataByYear, gdpDataByYear] = await Promise.all([
+          fetchEnergyDataForYears(selectedCountries, years),
+          fetchPopulationDataForYears(selectedCountries, years),
+          fetchGDPDataForYears(selectedCountries, years),
+        ])
 
         for (const year of years) {
           const yearData = {}
 
-          // Fetch data for all selected countries at once
-          const energyDataAll = await fetchEnergyData(selectedCountries, year)
-          const populationDataAll = await fetchPopulationData(selectedCountries, year)
-          const gdpDataAll = await fetchGDPData(selectedCountries, year)
+          const energyDataAll = energyDataByYear[year] || {}
+          const populationDataAll = populationDataByYear[year] || {}
+          const gdpDataAll = gdpDataByYear[year] || {}
 
           for (const country of selectedCountries) {
             // Get GIC (Gross Inland Consumption) data
@@ -224,7 +228,12 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
 
       {/* CO₂ Emissions Linkage Section */}
       {selectedCountries.length > 0 && (
-        <CO2EmissionsLinkage selectedCountries={selectedCountries} fuelMix={fuelMix} selectedYear={selectedYear} />
+        <CO2EmissionsLinkage
+          selectedCountries={selectedCountries}
+          selectedYear={selectedYear}
+          currentData={data}
+          fuelMix={fuelMix}
+        />
       )}
 
       {/* Energy Intensity Metrics Section */}
@@ -241,6 +250,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
           data={data}
+          fuelMix={fuelMix}
         />
       )}
 
@@ -257,6 +267,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         <SelfSufficiencyRatio
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
+          currentData={data}
         />
       )}
 
@@ -273,6 +284,7 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         <ElectricityGenerationBreakdown
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
+          fuelMix={fuelMix}
         />
       )}
 
@@ -281,6 +293,8 @@ export function EnergyDashboard({ selectedCountries, selectedYear, data, fuelMix
         <SecurityOfSupplyIndicators
           selectedCountries={selectedCountries}
           selectedYear={selectedYear}
+          currentData={data}
+          fuelMix={fuelMix}
         />
       )}
 

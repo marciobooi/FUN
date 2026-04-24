@@ -70,33 +70,20 @@ export function PeakSeasonalDemand({ selectedCountries, selectedYear }) {
       let isActive = true
 
       try {
-        const countryResults = await Promise.all(
-          countries.map(async (country) => {
-            const [electricity, gas] = await Promise.all([
-              getCachedMonthlyData(
-                monthlyDataCacheRef.current,
-                MONTHLY_DATASETS.electricity.code,
-                country,
-                selectedYear
-              ),
-              getCachedMonthlyData(
-                monthlyDataCacheRef.current,
-                MONTHLY_DATASETS.gas.code,
-                country,
-                selectedYear
-              ),
-            ])
-
-            return {
-              country,
-              datasets: {
-                electricity,
-                gas,
-                solidFuels: [],
-              },
-            }
-          })
-        )
+        const [electricityByCountry, gasByCountry] = await Promise.all([
+          getCachedMonthlyData(
+            monthlyDataCacheRef.current,
+            MONTHLY_DATASETS.electricity.code,
+            countries,
+            selectedYear
+          ),
+          getCachedMonthlyData(
+            monthlyDataCacheRef.current,
+            MONTHLY_DATASETS.gas.code,
+            countries,
+            selectedYear
+          ),
+        ])
 
         if (!isActive) {
           return
@@ -105,7 +92,13 @@ export function PeakSeasonalDemand({ selectedCountries, selectedYear }) {
         const nextMonthlyData = {}
         const nextSeasonalStats = {}
 
-        countryResults.forEach(({ country, datasets }) => {
+        countries.forEach((country) => {
+          const datasets = {
+            electricity: electricityByCountry[country] || [],
+            gas: gasByCountry[country] || [],
+            solidFuels: [],
+          }
+
           nextMonthlyData[country] = datasets
           nextSeasonalStats[country] = calculateSeasonalStats(
             datasets.electricity,
@@ -460,11 +453,11 @@ function transformChartData(monthlyData, countries, dataType) {
 /**
  * Fetch monthly data from Eurostat
  */
-async function fetchMonthlyDataFromEurostat(datasetCode, country, year) {
+async function fetchMonthlyDataFromEurostat(datasetCode, countries, year) {
   try {
     const params = new URLSearchParams()
     params.append('format', 'JSON')
-    params.append('geo', country)
+    countries.forEach((country) => params.append('geo', country))
 
     const timeParams = Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
     timeParams.forEach((timeParam) => params.append('time', timeParam))
@@ -496,21 +489,25 @@ async function fetchMonthlyDataFromEurostat(datasetCode, country, year) {
 
     const getValue = createEurostatValueGetter(response.data)
 
-    return timeParams.map((timeParam, index) => ({
-      month: MONTH_NAMES[index],
-      value: getMonthlyValue(response.data, getValue, timeParam) ?? 0,
-    }))
+    return countries.reduce((result, country) => {
+      result[country] = timeParams.map((timeParam, index) => ({
+        month: MONTH_NAMES[index],
+        value: getMonthlyValue(response.data, getValue, country, timeParam) ?? 0,
+      }))
+      return result
+    }, {})
   } catch (error) {
-    console.error(`Failed to fetch ${datasetCode} for ${country}:`, error.message)
+    console.error(`Failed to fetch ${datasetCode} for ${countries.join(',')}:`, error.message)
     throw error
   }
 }
 
-async function getCachedMonthlyData(cache, datasetCode, country, year) {
-  const cacheKey = `${datasetCode}:${country}:${year}`
+async function getCachedMonthlyData(cache, datasetCode, countries, year) {
+  const countriesKey = [...countries].sort().join(',')
+  const cacheKey = `${datasetCode}:${countriesKey}:${year}`
 
   if (!cache.has(cacheKey)) {
-    cache.set(cacheKey, fetchMonthlyDataFromEurostat(datasetCode, country, year))
+    cache.set(cacheKey, fetchMonthlyDataFromEurostat(datasetCode, countries, year))
   }
 
   try {
@@ -524,13 +521,12 @@ async function getCachedMonthlyData(cache, datasetCode, country, year) {
 /**
  * Extract numeric value from Eurostat API response for specific time period
  */
-function getMonthlyValue(data, getValue, timeParam) {
+function getMonthlyValue(data, getValue, country, timeParam) {
   if (data?.dimension?.time?.category?.index?.[timeParam] === undefined) {
     return null
   }
 
-  const timeDimensions = data.dimension.time.category.index
-  const dimensionFilters = { time: timeParam }
+  const dimensionFilters = { time: timeParam, geo: country }
 
   Object.entries(data.dimension).forEach(([dimensionKey, dimensionValue]) => {
     const categoryValues = Object.keys(dimensionValue?.category?.index || {})

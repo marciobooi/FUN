@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
-import { fetchEnergyData } from '../services/eurostat'
+import { fetchEnergyDataForYears } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
 
@@ -17,7 +17,7 @@ import { MethodologyModal } from './ui/MethodologyModal'
 
 const KTOE_TO_GWH = 11.63 // Conversion factor
 
-export function SelfSufficiencyRatio({ selectedCountries, selectedYear }) {
+export function SelfSufficiencyRatio({ selectedCountries, selectedYear, currentData = {} }) {
   const [sufficiencyData, setSufficiencyData] = useState({})
   const [historicalData, setHistoricalData] = useState({})
   const [isLoading, setIsLoading] = useState(false)
@@ -39,8 +39,7 @@ export function SelfSufficiencyRatio({ selectedCountries, selectedYear }) {
         const historical = {}
         const breakdown = {}
 
-        // Fetch all energy data for current year in one call
-        const energyData = await fetchEnergyData(selectedCountries, selectedYear)
+        const energyData = currentData
 
         for (const country of selectedCountries) {
           const countryData = energyData[country] || {}
@@ -60,22 +59,18 @@ export function SelfSufficiencyRatio({ selectedCountries, selectedYear }) {
           const startYear = Math.max(selectedYear - 10, 2005)
           const historicalYears = Array.from({ length: selectedYear - startYear + 1 }, (_, i) => startYear + i)
           
-          const historicalRatios = []
-          
-          for (const year of historicalYears) {
-            try {
-              const yearData = await fetchEnergyData([country], year)
-              const prod = yearData[country]?.productionRaw || 0
-              const demand = yearData[country]?.grossInlandConsumptionRaw || 0
-              
-              historicalRatios.push({
-                year,
-                selfSufficiency: demand > 0 ? (prod / demand) * 100 : 0
-              })
-            } catch (e) {
-              console.warn(`Missing data for ${country} year ${year}`)
+          const pastYears = historicalYears.filter((year) => year !== selectedYear)
+          const historicalSeries = pastYears.length > 0 ? await fetchEnergyDataForYears([country], pastYears) : {}
+          const historicalRatios = historicalYears.map((year) => {
+            const sourceData = year === selectedYear ? energyData : historicalSeries[year]
+            const prod = sourceData?.[country]?.productionRaw || 0
+            const demand = sourceData?.[country]?.grossInlandConsumptionRaw || 0
+
+            return {
+              year,
+              selfSufficiency: demand > 0 ? (prod / demand) * 100 : 0
             }
-          }
+          })
           
           historical[country] = historicalRatios
 

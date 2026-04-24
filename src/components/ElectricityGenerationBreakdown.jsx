@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, Treemap } from 'recharts'
-import { fetchFuelMixData } from '../services/eurostat'
+import { fetchFuelMixDataForYears } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
 
@@ -31,7 +31,7 @@ const TECHNOLOGY_MAPPING = {
   'geo': { name: 'Geothermal', category: 'renewable', color: '#EC4899', fieldKey: 'geothermal' }
 }
 
-export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear }) {
+export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear, fuelMix = {} }) {
   const [generationData, setGenerationData] = useState({})
   const [historicalData, setHistoricalData] = useState({})
   const [isLoading, setIsLoading] = useState(false)
@@ -48,9 +48,12 @@ export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear
       try {
         const generation = {}
         const historical = {}
+        const startYear = Math.max(selectedYear - 10, 2005)
+        const historicalYears = Array.from({ length: selectedYear - startYear + 1 }, (_, i) => startYear + i)
+        const pastYears = historicalYears.filter((year) => year !== selectedYear)
 
-        // Fetch current year fuel mix data (includes all technologies)
-        const fuelData = await fetchFuelMixData(selectedCountries, selectedYear)
+        const historicalFuelData = pastYears.length > 0 ? await fetchFuelMixDataForYears(selectedCountries, pastYears) : {}
+        const fuelData = fuelMix
 
         for (const country of selectedCountries) {
           const countryFuelData = fuelData[country] || {}
@@ -76,36 +79,27 @@ export function ElectricityGenerationBreakdown({ selectedCountries, selectedYear
             totalGWh: Math.round(totalGWh)
           }
 
-          // Fetch historical data (last 10 years)
-          const startYear = Math.max(selectedYear - 10, 2005)
-          const historicalYears = Array.from({ length: selectedYear - startYear + 1 }, (_, i) => startYear + i)
-          
           const historicalTrends = []
-          
-          for (const year of historicalYears) {
-            try {
-              const yearFuelData = await fetchFuelMixData([country], year)
-              const countryYearData = yearFuelData[country] || {}
-              
-              let yearTotal = 0
-              const yearTechs = {}
-              
-              Object.entries(TECHNOLOGY_MAPPING).forEach(([key, tech]) => {
-                const ktoe = countryYearData[tech.fieldKey] || 0
-                const gwh = (ktoe || 0) * KTOE_TO_GWH
-                yearTechs[tech.name] = Math.round(gwh)
-                yearTotal += gwh
-              })
-              
-              historicalTrends.push({
-                year,
-                ...yearTechs,
-                total: Math.round(yearTotal)
-              })
-            } catch (e) {
-              console.warn(`Missing data for ${country} year ${year}`)
-            }
-          }
+
+          historicalYears.forEach((year) => {
+            const countryYearData = year === selectedYear ? (fuelData[country] || {}) : (historicalFuelData[year]?.[country] || {})
+
+            let yearTotal = 0
+            const yearTechs = {}
+
+            Object.entries(TECHNOLOGY_MAPPING).forEach(([key, tech]) => {
+              const ktoe = countryYearData[tech.fieldKey] || 0
+              const gwh = (ktoe || 0) * KTOE_TO_GWH
+              yearTechs[tech.name] = Math.round(gwh)
+              yearTotal += gwh
+            })
+
+            historicalTrends.push({
+              year,
+              ...yearTechs,
+              total: Math.round(yearTotal)
+            })
+          })
           
           historical[country] = historicalTrends
         }

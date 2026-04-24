@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { fetchEnergyData } from '../services/eurostat'
+import { fetchEnergyDataForYears } from '../services/eurostat'
 import { getAvailableYears } from '../utils/yearUtils'
 import { ComposedChartComponent, ScatterChartComponent, BarChartComponent } from '../components/ui/charts'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
 
-export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }) {
+export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear, currentData = {} }) {
   const [emissionsData, setEmissionsData] = useState({})
   const [isLoadingEmissions, setIsLoadingEmissions] = useState(false)
 
@@ -36,14 +36,15 @@ export function CO2EmissionsLinkage({ selectedCountries, fuelMix, selectedYear }
         const recentYears = years.filter(y => y <= selectedYear).slice(0, 5)
 
         const emissionsData = {}
+        const pastYears = recentYears.filter((year) => year !== selectedYear)
+        const historicalEnergyData = pastYears.length > 0 ? await fetchEnergyDataForYears(selectedCountries, pastYears) : {}
 
         for (const year of recentYears) {
           const yearData = {}
 
           for (const country of selectedCountries) {
-            // Get energy consumption data for correlation
-            const energyData = await fetchEnergyData([country], year)
-            const consumption = energyData[country]?.consumptionRaw || 0
+            const sourceData = year === selectedYear ? currentData : historicalEnergyData[year]
+            const consumption = sourceData?.[country]?.consumptionRaw || 0
 
             // Get actual fossil fuel share from fuel mix data if available
             const countryFuelMix = fuelMix[country] || {}

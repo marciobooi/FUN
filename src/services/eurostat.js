@@ -2,6 +2,8 @@ import axios from 'axios';
 
 const BASE_URL = 'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_bal_c';
 const eurostatResultCache = new Map();
+const populationCoverageCache = new Map();
+const gdpCoverageCache = new Map();
 
 // Mapping for nrg_bal (Balance flow)
 const FLOW_MAPPING = {
@@ -126,6 +128,62 @@ async function getCachedEurostatResult(url, params, transform) {
   }
 }
 
+function buildCoverageKey(country, year) {
+  return `${country}:${year}`;
+}
+
+function getCoveredMetricResult(cache, countries, years) {
+  if (!countries.length || !years.length) {
+    return null;
+  }
+
+  const hasCompleteCoverage = countries.every((country) => (
+    years.every((year) => cache.has(buildCoverageKey(country, year)))
+  ));
+
+  if (!hasCompleteCoverage) {
+    return null;
+  }
+
+  if (years.length === 1) {
+    const [year] = years;
+    return countries.reduce((result, country) => {
+      result[country] = cache.get(buildCoverageKey(country, year));
+      return result;
+    }, {});
+  }
+
+  return years.reduce((result, year) => {
+    result[year] = countries.reduce((yearResult, country) => {
+      yearResult[country] = cache.get(buildCoverageKey(country, year));
+      return yearResult;
+    }, {});
+    return result;
+  }, {});
+}
+
+function storeMetricCoverage(cache, dataByYearOrCountry, countries, years) {
+  if (years.length === 1) {
+    const [year] = years;
+    countries.forEach((country) => {
+      cache.set(buildCoverageKey(country, year), dataByYearOrCountry[country] ?? 0);
+    });
+    return;
+  }
+
+  years.forEach((year) => {
+    countries.forEach((country) => {
+      cache.set(buildCoverageKey(country, year), dataByYearOrCountry[year]?.[country] ?? 0);
+    });
+  });
+}
+
+function getMissingCoverageCountries(cache, countries, years) {
+  return countries.filter((country) => (
+    years.some((year) => !cache.has(buildCoverageKey(country, year)))
+  ));
+}
+
 /**
  * Fetch dataset metadata (available years and countries)
  */
@@ -192,6 +250,32 @@ export const fetchEnergyData = async (countries, year) => {
   }
 };
 
+export const fetchEnergyDataForYears = async (countries, years) => {
+  if (!countries || countries.length === 0 || !years || years.length === 0) return {};
+
+  try {
+    const flows = Object.keys(FLOW_MAPPING);
+    const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach(c => params.append('geo', c));
+    normalizedYears.forEach(year => params.append('time', year.toString()));
+    flows.forEach(f => params.append('nrg_bal', f));
+    params.append('siec', 'TOTAL');
+    params.append('unit', 'KTOE');
+
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformBasicResponseForYears(responseData, countries, normalizedYears)
+    );
+  } catch (error) {
+    console.error('Eurostat API Error:', error);
+    throw error;
+  }
+};
+
 /**
  * Fetch detailed fuel mix data
  */
@@ -212,6 +296,31 @@ export const fetchFuelMixData = async (countries, year) => {
       BASE_URL,
       params,
       (responseData) => transformFuelMixResponse(responseData, countries, 'GIC', year)
+    );
+  } catch (error) {
+    console.error('Fuel Mix API Error:', error);
+    return {};
+  }
+};
+
+export const fetchFuelMixDataForYears = async (countries, years, nrgBal = 'GIC') => {
+  if (!countries || countries.length === 0 || !years || years.length === 0) return {};
+
+  try {
+    const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach(c => params.append('geo', c));
+    normalizedYears.forEach(year => params.append('time', year.toString()));
+    params.append('nrg_bal', nrgBal);
+    Object.keys(FUEL_CODES).forEach(code => params.append('siec', code));
+    params.append('unit', 'KTOE');
+
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => transformFuelMixResponseForYears(responseData, countries, normalizedYears, nrgBal)
     );
   } catch (error) {
     console.error('Fuel Mix API Error:', error);
@@ -294,6 +403,42 @@ export const fetchSectorData = async (countries, year) => {
   }
 };
 
+export const fetchDashboardDataBundle = async (countries, year) => {
+  if (!countries || countries.length === 0) {
+    return { basicData: {}, fuelData: {}, sectorData: {} };
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    countries.forEach((country) => params.append('geo', country));
+    params.append('time', year.toString());
+
+    const combinedFlows = [...new Set([
+      ...Object.keys(FLOW_MAPPING),
+      ...Object.keys(SECTOR_CODES),
+    ])];
+    combinedFlows.forEach((flow) => params.append('nrg_bal', flow));
+
+    const combinedSiecCodes = ['TOTAL', ...Object.keys(FUEL_CODES)];
+    combinedSiecCodes.forEach((code) => params.append('siec', code));
+    params.append('unit', 'KTOE');
+
+    return await getCachedEurostatResult(
+      BASE_URL,
+      params,
+      (responseData) => ({
+        basicData: transformBasicResponse(responseData, countries, year),
+        fuelData: transformFuelMixResponse(responseData, countries, 'GIC', year),
+        sectorData: transformSectorResponse(responseData, countries, year),
+      })
+    );
+  } catch (error) {
+    console.error('Dashboard bundle API Error:', error);
+    throw error;
+  }
+};
+
 // --- Transform Functions ---
 
 function transformBasicResponse(data, countries, year) {
@@ -338,6 +483,14 @@ function transformBasicResponse(data, countries, year) {
   return result;
 }
 
+function transformBasicResponseForYears(data, countries, years) {
+  const result = {};
+  years.forEach((year) => {
+    result[year] = transformBasicResponse(data, countries, year);
+  });
+  return result;
+}
+
 function transformFuelMixResponse(data, countries, nrgBal = 'FC_E', year) {
   const result = {};
   countries.forEach(c => { result[c] = {}; });
@@ -350,6 +503,14 @@ function transformFuelMixResponse(data, countries, nrgBal = 'FC_E', year) {
       const val = getValue({ freq: 'A', nrg_bal: nrgBal, siec: code, unit: 'KTOE', geo, time: year });
       result[geo][name] = (val !== null && !isNaN(val)) ? Math.round(val) : null;
     });
+  });
+  return result;
+}
+
+function transformFuelMixResponseForYears(data, countries, years, nrgBal = 'FC_E') {
+  const result = {};
+  years.forEach((year) => {
+    result[year] = transformFuelMixResponse(data, countries, nrgBal, year);
   });
   return result;
 }
@@ -398,19 +559,64 @@ export const fetchPopulationData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const cachedResult = getCoveredMetricResult(populationCoverageCache, normalizedCountries, [year]);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(populationCoverageCache, normalizedCountries, [year]);
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     params.append('unit', 'NR'); // Number (population)
     params.append('age', 'TOTAL');
     params.append('sex', 'T');
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan',
       params,
-      (responseData) => transformPopulationResponse(responseData, countries, year)
+      (responseData) => transformPopulationResponse(responseData, missingCountries, year)
     );
+
+    storeMetricCoverage(populationCoverageCache, fetchedResult, missingCountries, [year]);
+    return getCoveredMetricResult(populationCoverageCache, normalizedCountries, [year]) || fetchedResult;
+  } catch (error) {
+    console.error('Population API Error:', error);
+    return {};
+  }
+};
+
+export const fetchPopulationDataForYears = async (countries, years) => {
+  if (!countries || countries.length === 0 || !years || years.length === 0) return {};
+
+  try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+    const cachedResult = getCoveredMetricResult(populationCoverageCache, normalizedCountries, normalizedYears);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(populationCoverageCache, normalizedCountries, normalizedYears);
+
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    missingCountries.forEach(c => params.append('geo', c));
+    normalizedYears.forEach(year => params.append('time', year.toString()));
+    params.append('unit', 'NR');
+    params.append('age', 'TOTAL');
+    params.append('sex', 'T');
+
+    const fetchedResult = await getCachedEurostatResult(
+      'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan',
+      params,
+      (responseData) => transformPopulationResponseForYears(responseData, missingCountries, normalizedYears)
+    );
+
+    storeMetricCoverage(populationCoverageCache, fetchedResult, missingCountries, normalizedYears);
+    return getCoveredMetricResult(populationCoverageCache, normalizedCountries, normalizedYears) || fetchedResult;
   } catch (error) {
     console.error('Population API Error:', error);
     return {};
@@ -424,18 +630,62 @@ export const fetchGDPData = async (countries, year) => {
   if (!countries || countries.length === 0) return {};
 
   try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const cachedResult = getCoveredMetricResult(gdpCoverageCache, normalizedCountries, [year]);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(gdpCoverageCache, normalizedCountries, [year]);
     const params = new URLSearchParams();
     params.append('format', 'JSON');
-    countries.forEach(c => params.append('geo', c));
+    missingCountries.forEach(c => params.append('geo', c));
     params.append('time', year.toString());
     params.append('unit', 'CLV10_MEUR'); // Chain linked volumes (2010), million euro
     params.append('na_item', 'B1GQ'); // Gross domestic product at market prices
 
-    return await getCachedEurostatResult(
+    const fetchedResult = await getCachedEurostatResult(
       'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp',
       params,
-      (responseData) => transformGDPResponse(responseData, countries, year)
+      (responseData) => transformGDPResponse(responseData, missingCountries, year)
     );
+
+    storeMetricCoverage(gdpCoverageCache, fetchedResult, missingCountries, [year]);
+    return getCoveredMetricResult(gdpCoverageCache, normalizedCountries, [year]) || fetchedResult;
+  } catch (error) {
+    console.error('GDP API Error:', error);
+    return {};
+  }
+};
+
+export const fetchGDPDataForYears = async (countries, years) => {
+  if (!countries || countries.length === 0 || !years || years.length === 0) return {};
+
+  try {
+    const normalizedCountries = [...new Set(countries)].sort();
+    const normalizedYears = [...new Set(years)].sort((a, b) => a - b);
+    const cachedResult = getCoveredMetricResult(gdpCoverageCache, normalizedCountries, normalizedYears);
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const missingCountries = getMissingCoverageCountries(gdpCoverageCache, normalizedCountries, normalizedYears);
+
+    const params = new URLSearchParams();
+    params.append('format', 'JSON');
+    missingCountries.forEach(c => params.append('geo', c));
+    normalizedYears.forEach(year => params.append('time', year.toString()));
+    params.append('unit', 'CLV10_MEUR');
+    params.append('na_item', 'B1GQ');
+
+    const fetchedResult = await getCachedEurostatResult(
+      'https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp',
+      params,
+      (responseData) => transformGDPResponseForYears(responseData, missingCountries, normalizedYears)
+    );
+
+    storeMetricCoverage(gdpCoverageCache, fetchedResult, missingCountries, normalizedYears);
+    return getCoveredMetricResult(gdpCoverageCache, normalizedCountries, normalizedYears) || fetchedResult;
   } catch (error) {
     console.error('GDP API Error:', error);
     return {};
@@ -462,6 +712,14 @@ function transformPopulationResponse(data, countries, year) {
   return result;
 }
 
+function transformPopulationResponseForYears(data, countries, years) {
+  const result = {};
+  years.forEach((year) => {
+    result[year] = transformPopulationResponse(data, countries, year);
+  });
+  return result;
+}
+
 /**
  * Transform GDP API response
  */
@@ -479,5 +737,13 @@ function transformGDPResponse(data, countries, year) {
     }
   });
 
+  return result;
+}
+
+function transformGDPResponseForYears(data, countries, years) {
+  const result = {};
+  years.forEach((year) => {
+    result[year] = transformGDPResponse(data, countries, year);
+  });
   return result;
 }

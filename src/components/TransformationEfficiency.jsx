@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
-import { fetchEnergyData, fetchFuelMixData } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
 
@@ -21,7 +20,7 @@ import { MethodologyModal } from './ui/MethodologyModal'
  */
 const KTOE_TO_GWH = 11.63
 
-export function TransformationEfficiency({ selectedCountries, selectedYear, data }) {
+export function TransformationEfficiency({ selectedCountries, selectedYear, data = {}, fuelMix = {} }) {
   const [transformationData, setTransformationData] = useState({})
   const [isLoading, setIsLoading] = useState(false)
 
@@ -35,11 +34,8 @@ export function TransformationEfficiency({ selectedCountries, selectedYear, data
 
       setIsLoading(true)
       try {
-        // Fetch energy balance data and fuel mix data
-        const [energyData, fuelMixData] = await Promise.all([
-          fetchEnergyData(selectedCountries, selectedYear),
-          fetchFuelMixData(selectedCountries, selectedYear)
-        ])
+        const energyData = data
+        const fuelMixData = fuelMix
         
         const transformation = {}
 

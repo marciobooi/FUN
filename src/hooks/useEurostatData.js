@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { fetchEnergyData, fetchDatasetMetadata, fetchFuelMixData, fetchSectorData } from '../services/eurostat'
+import { fetchDashboardDataBundle, fetchDatasetMetadata } from '../services/eurostat'
 
 export function useEurostatData(countries, year) {
   const [data, setData] = useState({})
@@ -40,12 +40,7 @@ export function useEurostatData(countries, year) {
         setIsLoading(true)
         setError(null)
         
-        // Fetch all data types in parallel
-        const [basicData, fuelData, sectorData] = await Promise.all([
-          fetchEnergyData(selectedCountries, year),
-          fetchFuelMixData(selectedCountries, year),
-          fetchSectorData(selectedCountries, year)
-        ])
+        const { basicData, fuelData, sectorData } = await fetchDashboardDataBundle(selectedCountries, year)
         
         setData(basicData)
         setFuelMix(fuelData)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart, Scatter } from 'recharts'
-import { fetchEnergyData, fetchFuelMixData } from '../services/eurostat'
+import { fetchEnergyDataForYears, fetchFuelMixDataForYears } from '../services/eurostat'
 import { getCountryName } from '../data/countryNames'
 import { MethodologyModal } from './ui/MethodologyModal'
 
@@ -27,7 +27,7 @@ const FUEL_GROUPS = {
   'renewables': { name: 'Renewables', color: '#10B981', siec: ['RA000'] }
 }
 
-export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear }) {
+export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear, currentData = {}, fuelMix = {} }) {
   const [supplyData, setSupplyData] = useState({})
   const [historicalData, setHistoricalData] = useState({})
   const [isLoading, setIsLoading] = useState(false)
@@ -44,10 +44,17 @@ export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear }) 
       try {
         const supply = {}
         const historical = {}
+        const startYear = Math.max(selectedYear - 5, 2005)
+        const historicalYears = Array.from({ length: selectedYear - startYear + 1 }, (_, i) => startYear + i)
+        const pastYears = historicalYears.filter((year) => year !== selectedYear)
 
-        // Fetch current year data
-        const energyData = await fetchEnergyData(selectedCountries, selectedYear)
-        const fuelData = await fetchFuelMixData(selectedCountries, selectedYear)
+        const [historicalEnergyData, historicalFuelData] = await Promise.all([
+          pastYears.length > 0 ? fetchEnergyDataForYears(selectedCountries, pastYears) : Promise.resolve({}),
+          pastYears.length > 0 ? fetchFuelMixDataForYears(selectedCountries, pastYears) : Promise.resolve({}),
+        ])
+
+        const energyData = currentData
+        const fuelData = fuelMix
 
         for (const country of selectedCountries) {
           const countryEnergy = energyData[country] || {}
@@ -94,46 +101,32 @@ export function SecurityOfSupplyIndicators({ selectedCountries, selectedYear }) 
             netImports
           }
 
-          // Fetch historical data (last 5 years for trend)
-          const startYear = Math.max(selectedYear - 5, 2005)
-          const historicalYears = Array.from({ length: selectedYear - startYear + 1 }, (_, i) => startYear + i)
-          
           const historicalTrends = []
-          
-          for (const year of historicalYears) {
-            try {
-              const yearEnergy = await fetchEnergyData([country], year)
-              const yearFuel = await fetchFuelMixData([country], year)
-              
-              const countryYearEnergy = yearEnergy[country] || {}
-              const countryYearFuel = yearFuel[country] || {}
-              
-              const yearGIC = countryYearEnergy.grossInlandConsumptionRaw || 0
-              const yearNetImports = (countryYearEnergy.importsRaw || 0) - (countryYearEnergy.exportsRaw || 0)
-              
-              // Calculate HHI for this year
-              let yearTotalGIC = 0
-              const yearShares = {}
-              
-              Object.entries(FUEL_GROUPS).forEach(([key, fuel]) => {
-                const ktoe = countryYearFuel[key] || 0
-                yearTotalGIC += ktoe
-                yearShares[key] = ktoe / yearGIC
-              })
-              
-              const yearHHI = Object.values(yearShares).reduce((sum, share) => sum + (share * share), 0)
-              const yearDiversity = Math.round((1 - yearHHI) * 100)
-              
-              historicalTrends.push({
-                year,
-                diversityScore: yearDiversity,
-                hhi: yearHHI,
-                netImports: Math.round(yearNetImports)
-              })
-            } catch (e) {
-              console.warn(`Missing data for ${country} year ${year}`)
-            }
-          }
+
+          historicalYears.forEach((year) => {
+            const countryYearEnergy = year === selectedYear ? (energyData[country] || {}) : (historicalEnergyData[year]?.[country] || {})
+            const countryYearFuel = year === selectedYear ? (fuelData[country] || {}) : (historicalFuelData[year]?.[country] || {})
+
+            const yearGIC = countryYearEnergy.grossInlandConsumptionRaw || 0
+            const yearNetImports = (countryYearEnergy.importsRaw || 0) - (countryYearEnergy.exportsRaw || 0)
+
+            const yearShares = {}
+
+            Object.entries(FUEL_GROUPS).forEach(([key]) => {
+              const ktoe = countryYearFuel[key] || 0
+              yearShares[key] = yearGIC > 0 ? ktoe / yearGIC : 0
+            })
+
+            const yearHHI = Object.values(yearShares).reduce((sum, share) => sum + (share * share), 0)
+            const yearDiversity = Math.round((1 - yearHHI) * 100)
+
+            historicalTrends.push({
+              year,
+              diversityScore: yearDiversity,
+              hhi: yearHHI,
+              netImports: Math.round(yearNetImports)
+            })
+          })
           
           historical[country] = historicalTrends
         }
