@@ -1,4 +1,11 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../ChartContainer'
 
 /**
  * Reusable Bar Chart Component
@@ -42,15 +49,22 @@ export function BarChartComponent({
   }
 
   const isHorizontal = layout === 'horizontal'
+  const chartConfig = bars.reduce((acc, barConfig, index) => {
+    acc[barConfig.dataKey] = {
+      label: barConfig.name || barConfig.dataKey,
+      color: barConfig.fill || `hsl(${(index * 360) / Math.max(bars.length, 1)}, 70%, 50%)`,
+    }
+    return acc
+  }, {})
 
   return (
-    <ResponsiveContainer width={width} height={height}>
+    <ChartContainer config={chartConfig} width={width} height={height} minHeight={height}>
       <BarChart 
         data={data}
-        layout={isHorizontal ? 'vertical' : 'vertical'}
+        layout={isHorizontal ? 'vertical' : 'horizontal'}
         margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
       >
-        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={false} />}
         <XAxis 
           type={isHorizontal ? 'number' : 'category'}
           dataKey={isHorizontal ? undefined : xAxisKey}
@@ -61,8 +75,8 @@ export function BarChartComponent({
           dataKey={isHorizontal ? xAxisKey : undefined}
           label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft' } : undefined}
         />
-        <Tooltip formatter={defaultTooltip} />
-        {showLegend && <Legend />}
+        <ChartTooltip content={<ChartTooltipContent formatter={defaultTooltip} />} />
+        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
         {bars.map((barConfig, index) => (
           <Bar
             key={index}
@@ -76,6 +90,6 @@ export function BarChartComponent({
           </Bar>
         ))}
       </BarChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }

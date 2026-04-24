@@ -1,4 +1,11 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../ChartContainer'
 
 /**
  * Reusable Line Chart Component
@@ -41,10 +48,18 @@ export function LineChartComponent({
     return [value, name]
   }
 
+  const chartConfig = lines.reduce((acc, lineConfig, index) => {
+    acc[lineConfig.dataKey] = {
+      label: lineConfig.name || lineConfig.dataKey,
+      color: lineConfig.stroke || `hsl(${(index * 360) / Math.max(lines.length, 1)}, 70%, 50%)`,
+    }
+    return acc
+  }, {})
+
   return (
-    <ResponsiveContainer width={width} height={height}>
+    <ChartContainer config={chartConfig} width={width} height={height} minHeight={height}>
       <LineChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={false} />}
         <XAxis 
           dataKey={xAxisKey}
           label={xAxisLabel ? { value: xAxisLabel, position: 'insideBottomRight', offset: -5 } : undefined}
@@ -52,8 +67,8 @@ export function LineChartComponent({
         <YAxis 
           label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft' } : undefined}
         />
-        <Tooltip formatter={defaultTooltip} />
-        {showLegend && <Legend />}
+        <ChartTooltip content={<ChartTooltipContent formatter={defaultTooltip} indicator="line" />} />
+        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
         {lines.map((lineConfig, index) => (
           <Line
             key={index}
@@ -67,6 +82,6 @@ export function LineChartComponent({
           />
         ))}
       </LineChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }

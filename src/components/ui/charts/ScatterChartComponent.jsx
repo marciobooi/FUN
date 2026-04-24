@@ -1,4 +1,11 @@
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts'
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Cell } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../ChartContainer'
 
 /**
  * Reusable Scatter Chart Component
@@ -45,10 +52,18 @@ export function ScatterChartComponent({
     return [value, name]
   }
 
+  const chartConfig = scatters.reduce((acc, scatterConfig, index) => {
+    acc[scatterConfig.dataKey || scatterConfig.name || `series-${index}`] = {
+      label: scatterConfig.name || scatterConfig.dataKey || `Series ${index + 1}`,
+      color: scatterConfig.fill || `hsl(${(index * 360) / Math.max(scatters.length, 1)}, 70%, 50%)`,
+    }
+    return acc
+  }, {})
+
   return (
-    <ResponsiveContainer width={width} height={height}>
+    <ChartContainer config={chartConfig} width={width} height={height} minHeight={height}>
       <ScatterChart data={data} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={false} />}
         <XAxis 
           type="number"
           dataKey={xAxisKey}
@@ -59,8 +74,8 @@ export function ScatterChartComponent({
           dataKey={yAxisKey}
           label={yAxisLabel ? { value: yAxisLabel, angle: -90, position: 'insideLeft' } : undefined}
         />
-        <Tooltip formatter={defaultTooltip} cursor={{ strokeDasharray: '3 3' }} />
-        {showLegend && <Legend />}
+        <ChartTooltip content={<ChartTooltipContent formatter={defaultTooltip} />} cursor={{ strokeDasharray: '3 3' }} />
+        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
         {scatters.map((scatterConfig, index) => (
           <Scatter
             key={index}
@@ -78,6 +93,6 @@ export function ScatterChartComponent({
           </Scatter>
         ))}
       </ScatterChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }

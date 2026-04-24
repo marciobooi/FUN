@@ -1,4 +1,11 @@
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../ChartContainer'
 
 /**
  * Reusable Composed Chart Component (Bars + Lines combined)
@@ -43,10 +50,19 @@ export function ComposedChartComponent({
     return [value, name]
   }
 
+  const chartConfig = [...bars, ...lines].reduce((acc, seriesConfig, index) => {
+    const color = seriesConfig.fill || seriesConfig.stroke || `hsl(${(index * 360) / Math.max(bars.length + lines.length, 1)}, 70%, 50%)`
+    acc[seriesConfig.dataKey] = {
+      label: seriesConfig.name || seriesConfig.dataKey,
+      color,
+    }
+    return acc
+  }, {})
+
   return (
-    <ResponsiveContainer width={width} height={height}>
+    <ChartContainer config={chartConfig} width={width} height={height} minHeight={height}>
       <ComposedChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
-        {showGrid && <CartesianGrid strokeDasharray="3 3" />}
+        {showGrid && <CartesianGrid strokeDasharray="3 3" vertical={false} />}
         <XAxis 
           dataKey={xAxisKey}
           label={xAxisLabel ? { value: xAxisLabel, position: 'insideBottomRight', offset: -5 } : undefined}
@@ -62,8 +78,8 @@ export function ComposedChartComponent({
             label={yAxis2Label ? { value: yAxis2Label, angle: 90, position: 'insideRight' } : undefined}
           />
         )}
-        <Tooltip formatter={defaultTooltip} />
-        {showLegend && <Legend />}
+        <ChartTooltip content={<ChartTooltipContent formatter={defaultTooltip} indicator="line" />} />
+        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
         
         {bars.map((barConfig, index) => (
           <Bar
@@ -88,6 +104,6 @@ export function ComposedChartComponent({
           />
         ))}
       </ComposedChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }

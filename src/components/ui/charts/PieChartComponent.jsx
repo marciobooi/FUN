@@ -1,4 +1,11 @@
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell } from 'recharts'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../ChartContainer'
 
 /**
  * Reusable Pie Chart Component
@@ -39,18 +46,22 @@ export function PieChartComponent({
     return `${name} ${value}%`
   }
 
-  const defaultTooltip = (formatter) => {
-    return (value, name, props) => {
-      if (customTooltip) return customTooltip(value, name, props)
-      return [
-        `${value}%`,
-        props.payload?.name || name
-      ]
-    }
+  const defaultTooltip = (value, name, props) => {
+    if (customTooltip) return customTooltip(value, name, props)
+    return [`${value}%`, props.payload?.name || name]
   }
 
+  const chartConfig = data.reduce((acc, entry, index) => {
+    const key = String(entry[nameKey] || entry.name || `segment-${index}`)
+    acc[key] = {
+      label: entry[nameKey] || entry.name || key,
+      color: entry.color || `hsl(${(index * 360) / Math.max(data.length, 1)}, 70%, 50%)`,
+    }
+    return acc
+  }, {})
+
   return (
-    <ResponsiveContainer width={width} height={height}>
+    <ChartContainer config={chartConfig} width={width} height={height} minHeight={height}>
       <PieChart>
         <Pie
           data={data}
@@ -67,9 +78,9 @@ export function PieChartComponent({
             <Cell key={`cell-${index}`} fill={entry.color || `hsl(${index * 360 / data.length}, 70%, 50%)`} />
           ))}
         </Pie>
-        <Tooltip formatter={defaultTooltip()} labelStyle={{ color: '#374151' }} />
-        {showLegend && <Legend />}
+        <ChartTooltip content={<ChartTooltipContent formatter={defaultTooltip} />} />
+        {showLegend && <ChartLegend content={<ChartLegendContent />} />}
       </PieChart>
-    </ResponsiveContainer>
+    </ChartContainer>
   )
 }
