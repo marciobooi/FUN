@@ -43,7 +43,7 @@ function App() {
   const containerClass = viewMode === 'infographics' ? 'w-full' : 'max-w-7xl mx-auto'
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
       {/* Header */}
       <Header viewMode={viewMode} setViewMode={setViewMode} hidden={hideHeader} />
 

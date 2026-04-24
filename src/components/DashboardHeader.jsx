@@ -1,7 +1,7 @@
 export function DashboardHeader({ selectedCountries, selectedYear }) {
   return (
     <div className="mb-10">
-      <h2 className="text-3xl font-bold text-gray-900 mb-2">
+      <h2 className="text-3xl font-bold text-gray-900 mb-2 font-heading">
         {selectedCountries.length > 0 ? 'Energy Metrics Overview' : 'Getting Started'}
       </h2>
       <p className="text-gray-500">
